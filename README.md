@@ -4,6 +4,8 @@ An interactive, browser-based simulator that visualizes how spacecraft use plane
 
 **[▶ Try it live](#usage)** — just download `index.html` and double-click it.
 
+<img width="1004" height="610" alt="Screenshot 2026-02-17 at 2 57 01 PM" src="https://github.com/user-attachments/assets/8c30e9d5-564a-4bce-9acd-ffac0ed6667d" />
+
 ---
 
 ## What is this?
