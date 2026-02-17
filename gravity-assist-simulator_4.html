@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gravity Assist Trajectory Simulator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #06060e; color: #ddd;
+    font-family: 'IBM Plex Mono', 'SF Mono', monospace;
+    height: 100vh; display: flex; flex-direction: column;
+    overflow: hidden; user-select: none;
+  }
+  #controls {
+    padding: 10px 16px 12px;
+    background: rgba(12,12,22,0.98);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    flex-shrink: 0;
+  }
+  #title-row {
+    display: flex; align-items: center; margin-bottom: 8px;
+    flex-wrap: wrap; gap: 8px;
+  }
+  .logo { color: #ff8844; font-size: 16px; }
+  .name { font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #aaa; }
+  #status { margin-left: auto; font-size: 10px; letter-spacing: 0.5px; font-weight: 700; }
+  #status.reached { color: #00ee77; }
+  #status.missed  { color: #ff6644; }
+  #status.escaped { color: #bb88ff; }
+  #status.suncrash { color: #ffcc22; }
+  #status .detail { color: #666; font-weight: 400; margin-left: 6px; }
+  #input-row { display: flex; gap: 10px; margin-bottom: 8px; align-items: end; flex-wrap: wrap; }
+  #input-row select {
+    background: #111120; border: 1px solid rgba(255,255,255,0.08);
+    color: #ddd; padding: 5px 8px; border-radius: 4px;
+    font-size: 11px; font-family: inherit; min-width: 150px;
+  }
+  #launch-btn {
+    padding: 6px 22px; white-space: nowrap;
+    background: linear-gradient(135deg, #ee5522, #ff8844);
+    border: none; border-radius: 4px;
+    color: #fff; font-size: 11px; font-weight: 700;
+    letter-spacing: 2px; cursor: pointer; font-family: inherit;
+  }
+  #launch-btn:hover { opacity: 0.9; }
+  #launch-btn:disabled { background: rgba(255,136,68,0.12); color: #664422; cursor: not-allowed; }
+  #sliders { display: flex; gap: 14px; flex-wrap: wrap; }
+  .sg { flex: 1 1 100px; min-width: 80px; }
+  .sg label { font-size: 9px; color: #888; letter-spacing: 0.4px; display: block; margin-bottom: 2px; }
+  .sg label .v { color: #ccc; font-weight: 600; }
+  .sg input[type=range] { width: 100%; cursor: pointer; }
+
+  /* Launch window section */
+  #window-section {
+    margin-top: 8px; padding-top: 8px;
+    border-top: 1px solid rgba(255,255,255,0.04);
+  }
+  #window-header {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 4px; flex-wrap: wrap;
+  }
+  #window-header .wlabel { font-size: 9px; color: #888; letter-spacing: 0.5px; }
+  #window-header .winfo { font-size: 9px; color: #666; }
+  #window-header .wideal { color: #00dd66; font-weight: 600; }
+  #window-header .wcurrent { color: #ffaa44; font-weight: 600; }
+  #launch-date-slider { width: 100%; cursor: pointer; accent-color: #00dd66; }
+  #window-strip {
+    width: 100%; height: 14px; border-radius: 3px;
+    margin-top: 2px; margin-bottom: 2px;
+    background: #111; position: relative; overflow: hidden;
+  }
+  #window-strip canvas { width: 100%; height: 100%; display: block; }
+  #window-labels {
+    display: flex; justify-content: space-between;
+    font-size: 8px; color: #555;
+  }
+
+  #tip { margin-top: 6px; font-size: 9px; color: #554433; line-height: 1.5; display: none; }
+  #canvas-wrap { flex: 1; position: relative; min-height: 0; }
+  #canvas-wrap canvas { width: 100%; height: 100%; display: block; }
+  #placeholder {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    text-align: center; color: #444; font-size: 12px; letter-spacing: 0.5px;
+    pointer-events: none; line-height: 1.8;
+  }
+  #placeholder .icon { font-size: 26px; margin-bottom: 8px; opacity: 0.25; }
+  #placeholder .sub { font-size: 9px; color: #333; max-width: 340px; margin: 8px auto 0; line-height: 1.6; }
+  #boost-slider { accent-color: #ff8844; }
+  #angle-slider { accent-color: #5aadff; }
+  #zoom-slider  { accent-color: #7ecbc4; }
+  #speed-slider { accent-color: #bb88ff; }
+</style>
+</head>
+<body>
+
+<div id="controls">
+  <div id="title-row">
+    <span class="logo">◈</span>
+    <span class="name">GRAVITY ASSIST SIMULATOR</span>
+    <span id="status"></span>
+  </div>
+  <div id="input-row">
+    <div>
+      <label style="font-size:9px;color:#888;display:block;margin-bottom:2px">DESTINATION</label>
+      <select id="dest-select"></select>
+    </div>
+    <button id="launch-btn">▶ LAUNCH</button>
+  </div>
+  <div id="sliders">
+    <div class="sg">
+      <label>BOOST (Δv): <span class="v" id="boost-val">12%</span></label>
+      <input type="range" id="boost-slider" min="1" max="60" step="0.5" value="12">
+    </div>
+    <div class="sg">
+      <label>LAUNCH ANGLE: <span class="v" id="angle-val">0°</span></label>
+      <input type="range" id="angle-slider" min="-180" max="180" step="1" value="0">
+    </div>
+    <div class="sg">
+      <label>ZOOM: <span class="v" id="zoom-val">1.0x</span></label>
+      <input type="range" id="zoom-slider" min="0.08" max="4" step="0.02" value="1">
+    </div>
+    <div class="sg">
+      <label>ANIM SPEED: <span class="v" id="speed-val">1.0x</span></label>
+      <input type="range" id="speed-slider" min="0.01" max="5" step="0.01" value="1">
+    </div>
+  </div>
+
+  <!-- Launch window section -->
+  <div id="window-section">
+    <div id="window-header">
+      <span class="wlabel">LAUNCH DATE: <span class="v" id="date-val">Day 0</span></span>
+      <span class="winfo">Phase angle: <span class="wcurrent" id="phase-current">—</span></span>
+      <span class="winfo">Ideal: <span class="wideal" id="phase-ideal">—</span></span>
+      <span class="winfo" id="transfer-info"></span>
+    </div>
+    <input type="range" id="launch-date-slider" min="0" max="1200" step="1" value="0">
+    <div id="window-strip"><canvas id="strip-canvas"></canvas></div>
+    <div id="window-labels">
+      <span>Day 0</span>
+      <span>Day 300</span>
+      <span>Day 600</span>
+      <span>Day 900</span>
+      <span>Day 1200</span>
+    </div>
+  </div>
+
+  <div id="tip"></div>
+</div>
+
+<div id="canvas-wrap">
+  <canvas id="canvas"></canvas>
+  <div id="placeholder">
+    <div class="icon">◈</div>
+    <div style="color:#555">Choose a destination, find a launch window, and hit LAUNCH</div>
+    <div class="sub">
+      The green strip shows optimal launch dates — drag the Launch Date slider to a green zone,
+      then hit Launch. The phase angle between Earth and the target must be just right,
+      like timing a pass to a teammate running across a field.
+    </div>
+  </div>
+</div>
+
+<script>
+const AU  = 120;
+const PI2 = 2 * Math.PI;
+const GM_SUN = PI2 * PI2 * AU * AU * AU;
+const EARTH_V = PI2 * AU;
+const REAL_EARTH_V_KMS = 29.78;
+const BOUNDARY_AU = 80;
+const MAX_STEPS = 1500000;
+const MAX_DAYS = 1200;
+
+const PLANETS = [
+  { name:"Mercury", r:0.387, rad:3,  color:"#c4b8b8", gm:GM_SUN*8e-5,  T:0.241  },
+  { name:"Venus",   r:0.723, rad:5,  color:"#e8cda0", gm:GM_SUN*3e-4,  T:0.615  },
+  { name:"Earth",   r:1.0,   rad:5,  color:"#5aadff", gm:GM_SUN*3e-4,  T:1.0    },
+  { name:"Mars",    r:1.524, rad:4,  color:"#d4714a", gm:GM_SUN*1.5e-4, T:1.881  },
+  { name:"Jupiter", r:5.203, rad:11, color:"#d4ad6a", gm:GM_SUN*1.2e-3, T:11.86  },
+  { name:"Saturn",  r:9.537, rad:9,  color:"#e8d5a3", gm:GM_SUN*4e-4,  T:29.46  },
+  { name:"Uranus",  r:19.19, rad:7,  color:"#7ecbc4", gm:GM_SUN*8e-5,  T:84.01  },
+  { name:"Neptune", r:30.07, rad:7,  color:"#5577ee", gm:GM_SUN*8e-5,  T:164.8  },
+];
+
+function planetPos(p, t) {
+  const a = PI2 * t / p.T;
+  return { x: p.r * AU * Math.cos(a), y: p.r * AU * Math.sin(a) };
+}
+
+// ── Hohmann transfer calculations ──────────────────────────────────
+function hohmannParams(destPlanet) {
+  const r1 = 1.0; // Earth in AU
+  const r2 = destPlanet.r;
+  const at = (r1 + r2) / 2; // transfer semi-major axis in AU
+  const transferPeriod = Math.pow(at, 1.5); // years (Kepler's 3rd)
+  const transferTime = transferPeriod / 2; // half orbit
+
+  // How far does destination move during transfer?
+  const destAngleMoved = 360 * transferTime / destPlanet.T;
+
+  // Ideal phase angle: destination should be this far ahead of Earth at launch
+  // (measured at Sun, from Earth to destination, in direction of orbital motion)
+  let idealPhase = 180 - destAngleMoved;
+  // Normalize to 0-360
+  idealPhase = ((idealPhase % 360) + 360) % 360;
+
+  // Hohmann Δv as fraction of Earth's orbital speed
+  // v_departure = sqrt(GM/r1) * sqrt(2*r2/(r1+r2))
+  // Δv = v_departure - v_earth
+  const vRatio = Math.sqrt(2 * r2 / (r1 + r2));
+  const boostPct = (vRatio - 1) * 100; // can be negative for inner planets
+
+  return {
+    transferTimeDays: transferTime * 365.25,
+    idealPhase,
+    boostPct: Math.abs(boostPct),
+    isInner: r2 < r1,
+  };
+}
+
+// Phase angle from Earth to destination at time t (measured at Sun, counterclockwise)
+function phaseAngle(destPlanet, t) {
+  const earth = PLANETS[2];
+  const ep = planetPos(earth, t);
+  const dp = planetPos(destPlanet, t);
+  const eAngle = Math.atan2(ep.y, ep.x);
+  const dAngle = Math.atan2(dp.y, dp.x);
+  let phase = (dAngle - eAngle) * 180 / Math.PI;
+  return ((phase % 360) + 360) % 360;
+}
+
+// ── Simulation ─────────────────────────────────────────────────────
+function simulate(boostPct, angleDeg, destName, launchTimeYears) {
+  const earth = PLANETS[2];
+  const t0 = launchTimeYears;
+  const ep = planetPos(earth, t0);
+  const aRad = angleDeg * Math.PI / 180;
+  const eAng = Math.atan2(ep.y, ep.x);
+  const evx = -EARTH_V * Math.sin(eAng);
+  const evy =  EARTH_V * Math.cos(eAng);
+  const dv = (boostPct / 100) * EARTH_V;
+
+  let x = ep.x, y = ep.y;
+  let vx = evx + dv * Math.cos(aRad);
+  let vy = evy + dv * Math.sin(aRad);
+
+  const dest = PLANETS.find(p => p.name === destName);
+  const dt = 0.00008;
+  const trail = [];
+  const assists = [];
+  let time = t0, stopReason = "MAX_TIME";
+
+  for (let i = 0; i < MAX_STEPS; i++) {
+    const ds = Math.sqrt(x*x + y*y);
+    if (ds < 8) { stopReason = "SUN_CRASH"; break; }
+    let ax = -GM_SUN * x / (ds*ds*ds);
+    let ay = -GM_SUN * y / (ds*ds*ds);
+
+    for (const p of PLANETS) {
+      const pp = planetPos(p, time);
+      const dx = pp.x - x, dy = pp.y - y;
+      const d = Math.sqrt(dx*dx + dy*dy);
+      // Arrival zone for destination is much wider (like entering its sphere of influence)
+      const arrivalR = p.name === dest?.name ? Math.max(p.rad * 5, 18) : p.rad * 1.2;
+      if (d < arrivalR) {
+        if (p.name === dest?.name && (time - t0) > 0.01) stopReason = "ARRIVED";
+        if (p.name === "Earth" && (time - t0) < 0.02) continue;
+      }
+      if (d > p.rad * 1.2) {
+        ax += p.gm * dx / (d*d*d);
+        ay += p.gm * dy / (d*d*d);
+      }
+      const thresh = Math.max(p.r * AU * 0.06, 15);
+      if (d < thresh && p.name !== "Earth" && (time - t0) > 0.02) {
+        if (!assists.find(a => a.planet === p.name && Math.abs(time - a.time) < 0.3))
+          assists.push({ planet: p.name, time: time - t0, x: pp.x, y: pp.y });
+      }
+    }
+    if (stopReason === "ARRIVED") break;
+
+    vx += ax * dt; vy += ay * dt;
+    x  += vx * dt; y  += vy * dt;
+    time += dt;
+
+    if (i % 15 === 0) {
+      const spd = Math.sqrt(vx*vx + vy*vy);
+      trail.push({ x, y, t: time - t0, absT: time, speed: spd });
+    }
+    if (Math.sqrt(x*x + y*y) > BOUNDARY_AU * AU) { stopReason = "ESCAPED"; break; }
+  }
+  return { trail, time: time - t0, stopReason, assists, t0 };
+}
+
+// ── DOM ────────────────────────────────────────────────────────────
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const stripCanvas = document.getElementById("strip-canvas");
+const stripCtx = stripCanvas.getContext("2d");
+const destSel = document.getElementById("dest-select");
+const launchBtn = document.getElementById("launch-btn");
+const statusEl = document.getElementById("status");
+const tipEl = document.getElementById("tip");
+const placeholder = document.getElementById("placeholder");
+const boostSlider = document.getElementById("boost-slider");
+const angleSlider = document.getElementById("angle-slider");
+const zoomSlider  = document.getElementById("zoom-slider");
+const speedSlider = document.getElementById("speed-slider");
+const dateSlider  = document.getElementById("launch-date-slider");
+const boostVal = document.getElementById("boost-val");
+const angleVal = document.getElementById("angle-val");
+const zoomVal  = document.getElementById("zoom-val");
+const speedVal = document.getElementById("speed-val");
+const dateVal  = document.getElementById("date-val");
+const phaseCurrent = document.getElementById("phase-current");
+const phaseIdeal   = document.getElementById("phase-ideal");
+const transferInfo = document.getElementById("transfer-info");
+
+PLANETS.filter(p => p.name !== "Earth").forEach(p => {
+  const opt = document.createElement("option");
+  opt.value = p.name; opt.textContent = `${p.name} (${p.r} AU)`;
+  destSel.appendChild(opt);
+});
+
+boostSlider.oninput = () => { boostVal.textContent = boostSlider.value + "%"; };
+angleSlider.oninput = () => { angleVal.textContent = angleSlider.value + "°"; };
+zoomSlider.oninput  = () => { zoomVal.textContent = (+zoomSlider.value).toFixed(1) + "x"; draw(progress); };
+speedSlider.oninput = () => {
+  const v = +speedSlider.value;
+  speedVal.textContent = v < 0.1 ? v.toFixed(2) + "x" : v.toFixed(1) + "x";
+};
+
+function updateDateDisplay() {
+  const day = +dateSlider.value;
+  dateVal.textContent = "Day " + day;
+  const dest = PLANETS.find(p => p.name === destSel.value);
+  if (dest) {
+    const t = day / 365.25;
+    const pa = phaseAngle(dest, t);
+    phaseCurrent.textContent = pa.toFixed(1) + "°";
+  }
+  draw(progress);
+}
+
+dateSlider.oninput = updateDateDisplay;
+
+function updateWindowInfo() {
+  const dest = PLANETS.find(p => p.name === destSel.value);
+  if (!dest) return;
+  const h = hohmannParams(dest);
+  phaseIdeal.textContent = h.idealPhase.toFixed(1) + "°";
+  transferInfo.innerHTML = `Transfer: ~${Math.round(h.transferTimeDays)} days · Ideal boost: ~${h.boostPct.toFixed(0)}%${h.isInner ? " (retrograde)" : ""}`;
+
+  // Auto-set zoom
+  let z = dest.r <= 1.6 ? 2.8 : dest.r <= 6 ? 0.75 : dest.r <= 20 ? 0.32 : 0.18;
+  zoomSlider.value = z;
+  zoomVal.textContent = z.toFixed(1) + "x";
+
+  drawWindowStrip(dest);
+  updateDateDisplay();
+}
+
+destSel.onchange = updateWindowInfo;
+
+// ── Window quality strip ───────────────────────────────────────────
+function drawWindowStrip(dest) {
+  const rect = stripCanvas.parentElement.getBoundingClientRect();
+  stripCanvas.width = rect.width;
+  stripCanvas.height = rect.height;
+  const W = stripCanvas.width, H = stripCanvas.height;
+  const h = hohmannParams(dest);
+
+  for (let px = 0; px < W; px++) {
+    const day = (px / W) * MAX_DAYS;
+    const t = day / 365.25;
+    const pa = phaseAngle(dest, t);
+
+    // How close is this to ideal? (circular distance)
+    let diff = Math.abs(pa - h.idealPhase);
+    if (diff > 180) diff = 360 - diff;
+
+    // Window quality: 0 = perfect, 180 = worst
+    const quality = 1 - (diff / 180);
+    const isGood = diff < 20;
+    const isOk = diff < 45;
+
+    let r, g, b;
+    if (isGood) {
+      // Bright green
+      const f = 1 - diff / 20;
+      r = 0; g = Math.round(150 + 105 * f); b = Math.round(60 * f);
+    } else if (isOk) {
+      // Yellow-ish
+      const f = 1 - (diff - 20) / 25;
+      r = Math.round(120 * f); g = Math.round(100 * f); b = 0;
+    } else {
+      // Dark
+      r = Math.round(30 * quality); g = Math.round(20 * quality); b = Math.round(15 * quality);
+    }
+
+    stripCtx.fillStyle = `rgb(${r},${g},${b})`;
+    stripCtx.fillRect(px, 0, 1, H);
+  }
+
+  // Draw "WINDOW" labels on bright spots
+  stripCtx.font = "bold 7px 'IBM Plex Mono', monospace";
+  stripCtx.textAlign = "center";
+  stripCtx.fillStyle = "rgba(255,255,255,0.7)";
+
+  // Find window centers (local minima of diff)
+  let prevDiff = 999, windowCenters = [];
+  for (let day = 0; day < MAX_DAYS; day += 1) {
+    const t = day / 365.25;
+    const pa = phaseAngle(dest, t);
+    let diff = Math.abs(pa - h.idealPhase);
+    if (diff > 180) diff = 360 - diff;
+    if (diff < 15 && diff < prevDiff) {
+      // We're approaching a minimum
+    } else if (prevDiff < 15 && diff >= prevDiff && windowCenters.length === 0 || 
+               (windowCenters.length > 0 && day - windowCenters[windowCenters.length-1] > 60)) {
+      if (prevDiff < 15) windowCenters.push(day - 1);
+    }
+    prevDiff = diff;
+  }
+  
+  for (const center of windowCenters) {
+    const px = (center / MAX_DAYS) * W;
+    stripCtx.fillText("▼ WINDOW", px, 10);
+  }
+}
+
+// ── State ──────────────────────────────────────────────────────────
+let result = null, animId = null, progress = 0, running = false;
+
+function resize() {
+  const wrap = canvas.parentElement;
+  canvas.width = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+  draw(progress);
+  // Also resize strip
+  const dest = PLANETS.find(p => p.name === destSel.value);
+  if (dest) drawWindowStrip(dest);
+}
+window.addEventListener("resize", resize);
+
+const stars = [];
+for (let i = 0; i < 250; i++)
+  stars.push({ x: Math.random(), y: Math.random(), b: 0.06 + Math.random() * 0.35 });
+
+// ── Main draw ──────────────────────────────────────────────────────
+function draw(prog) {
+  const W = canvas.width, H = canvas.height;
+  const cx = W / 2, cy = H / 2;
+  const z = +zoomSlider.value;
+  const destName = destSel.value;
+  const dest = PLANETS.find(p => p.name === destName);
+  const launchDay = +dateSlider.value;
+  const launchTimeYears = launchDay / 365.25;
+
+  ctx.fillStyle = "#06060e";
+  ctx.fillRect(0, 0, W, H);
+
+  for (const s of stars) {
+    ctx.fillStyle = `rgba(255,255,255,${s.b})`;
+    ctx.fillRect(s.x * W, s.y * H, 1, 1);
+  }
+
+  // Sun
+  const sunR = 20 * Math.max(z, 0.3);
+  const sGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, sunR);
+  sGrad.addColorStop(0, "#ffee66"); sGrad.addColorStop(0.25, "#ffbb22");
+  sGrad.addColorStop(0.6, "rgba(255,140,0,0.08)"); sGrad.addColorStop(1, "transparent");
+  ctx.fillStyle = sGrad;
+  ctx.beginPath(); ctx.arc(cx, cy, sunR, 0, PI2); ctx.fill();
+  ctx.fillStyle = "#ffee88";
+  ctx.beginPath(); ctx.arc(cx, cy, Math.max(3, 4 * z), 0, PI2); ctx.fill();
+
+  // Determine current time: if sim running, use trail time; else use launch date slider
+  const trail = result ? result.trail : [];
+  const visCount = Math.floor(prog * trail.length);
+  const curPoint = visCount > 0 ? trail[visCount - 1] : null;
+  const displayTime = curPoint ? curPoint.absT : launchTimeYears;
+
+  // Planets
+  for (const p of PLANETS) {
+    const orbitR = p.r * AU * z;
+    if (orbitR > 4 && orbitR < Math.max(W, H) * 0.8) {
+      ctx.strokeStyle = "rgba(255,255,255,0.04)";
+      ctx.lineWidth = 1; ctx.setLineDash([2, 5]);
+      ctx.beginPath(); ctx.arc(cx, cy, orbitR, 0, PI2); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    const pos = planetPos(p, displayTime);
+    const px = cx + pos.x * z, py = cy + pos.y * z;
+    const pr = Math.max(p.rad * z, 2);
+
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(px, py, pr, 0, PI2); ctx.fill();
+
+    if (p.name === "Saturn" && pr > 3) {
+      ctx.strokeStyle = "rgba(232,213,163,0.35)";
+      ctx.lineWidth = Math.max(1, 1.5 * z);
+      ctx.beginPath(); ctx.ellipse(px, py, pr * 2.2, pr * 0.5, 0.4, 0, PI2); ctx.stroke();
+    }
+    if (pr > 2) {
+      ctx.fillStyle = "rgba(255,255,255,0.45)";
+      ctx.font = `${Math.max(8, Math.min(11, 10 * z))}px 'IBM Plex Mono', monospace`;
+      ctx.textAlign = "center";
+      ctx.fillText(p.name, px, py - pr - 4);
+    }
+  }
+
+  // ── Phase angle visualization (before launch / no sim running) ──
+  if (dest && !curPoint) {
+    const earth = PLANETS[2];
+    const ep = planetPos(earth, displayTime);
+    const dp = planetPos(dest, displayTime);
+    const epx = cx + ep.x * z, epy = cy + ep.y * z;
+    const dpx = cx + dp.x * z, dpy = cy + dp.y * z;
+
+    // Lines from Sun to Earth and Sun to destination
+    ctx.strokeStyle = "rgba(90,170,255,0.25)";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(epx, epy); ctx.stroke();
+
+    ctx.strokeStyle = "rgba(0,255,120,0.25)";
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(dpx, dpy); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Phase angle arc
+    const eAngle = Math.atan2(ep.y, ep.x);
+    const dAngle = Math.atan2(dp.y, dp.x);
+    const arcR = 35 * Math.max(z, 0.4);
+    
+    const pa = phaseAngle(dest, displayTime);
+    const h = hohmannParams(dest);
+    let diff = Math.abs(pa - h.idealPhase);
+    if (diff > 180) diff = 360 - diff;
+    const isGood = diff < 20;
+
+    ctx.strokeStyle = isGood ? "rgba(0,255,120,0.6)" : "rgba(255,170,70,0.4)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, arcR, eAngle, dAngle, false);
+    ctx.stroke();
+
+    // Phase angle text at midpoint of arc
+    const midAngle = (eAngle + dAngle) / 2;
+    const textR = arcR + 14;
+    const tx = cx + textR * Math.cos(midAngle);
+    const ty = cy + textR * Math.sin(midAngle);
+    ctx.fillStyle = isGood ? "rgba(0,255,120,0.85)" : "rgba(255,170,70,0.7)";
+    ctx.font = "bold 10px 'IBM Plex Mono', monospace";
+    ctx.textAlign = "center";
+    ctx.fillText(pa.toFixed(0) + "°", tx, ty);
+
+    if (isGood) {
+      ctx.fillStyle = "rgba(0,255,120,0.6)";
+      ctx.font = "bold 8px 'IBM Plex Mono', monospace";
+      ctx.fillText("✓ GOOD WINDOW", tx, ty + 12);
+    }
+  }
+
+  // Destination highlight
+  if (dest) {
+    const dp = planetPos(dest, displayTime);
+    const dpx = cx + dp.x * z, dpy = cy + dp.y * z;
+    const destR = Math.max(dest.rad * z, 3);
+    const pulse = 0.4 + 0.3 * Math.sin(Date.now() / 200);
+
+    ctx.strokeStyle = `rgba(0,255,120,${pulse * 0.6})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(dpx, dpy, destR + 16 + 3 * Math.sin(Date.now() / 300), 0, PI2); ctx.stroke();
+
+    ctx.strokeStyle = `rgba(0,255,120,${pulse})`;
+    ctx.lineWidth = 1.5; ctx.setLineDash([5, 5]);
+    ctx.beginPath(); ctx.arc(dpx, dpy, destR + 9, 0, PI2); ctx.stroke();
+    ctx.setLineDash([]);
+
+    const ch = destR + 22;
+    ctx.strokeStyle = `rgba(0,255,120,${pulse * 0.4})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(dpx - ch, dpy); ctx.lineTo(dpx - destR - 18, dpy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(dpx + destR + 18, dpy); ctx.lineTo(dpx + ch, dpy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(dpx, dpy - ch); ctx.lineTo(dpx, dpy - destR - 18); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(dpx, dpy + destR + 18); ctx.lineTo(dpx, dpy + ch); ctx.stroke();
+
+    ctx.fillStyle = `rgba(0,255,120,0.85)`;
+    ctx.font = "bold 9px 'IBM Plex Mono', monospace";
+    ctx.textAlign = "center";
+    ctx.fillText("▼ TARGET: " + dest.name.toUpperCase(), dpx, dpy - destR - 24);
+  }
+
+  // Trajectory trail
+  if (trail.length > 1 && visCount > 1) {
+    ctx.lineWidth = 2;
+    for (let i = 1; i < visCount; i++) {
+      const f = i / visCount;
+      const r = 60 + 200 * f | 0;
+      const g = 220 * (1 - f * 0.6) | 0;
+      const b = 255 * (1 - f) | 0;
+      ctx.strokeStyle = `rgba(${r},${g},${b},${0.25 + f * 0.65})`;
+      ctx.beginPath();
+      ctx.moveTo(cx + trail[i-1].x * z, cy + trail[i-1].y * z);
+      ctx.lineTo(cx + trail[i].x * z, cy + trail[i].y * z);
+      ctx.stroke();
+    }
+
+    // Rocket
+    const h = trail[visCount - 1];
+    const hx = cx + h.x * z, hy = cy + h.y * z;
+
+    const g1 = ctx.createRadialGradient(hx, hy, 0, hx, hy, 22);
+    g1.addColorStop(0, "rgba(255,120,60,0.3)");
+    g1.addColorStop(0.5, "rgba(255,80,30,0.08)");
+    g1.addColorStop(1, "transparent");
+    ctx.fillStyle = g1;
+    ctx.beginPath(); ctx.arc(hx, hy, 22, 0, PI2); ctx.fill();
+
+    const g2 = ctx.createRadialGradient(hx, hy, 0, hx, hy, 10);
+    g2.addColorStop(0, "#ffffff"); g2.addColorStop(0.3, "#ffaa55");
+    g2.addColorStop(0.7, "rgba(255,100,40,0.3)"); g2.addColorStop(1, "transparent");
+    ctx.fillStyle = g2;
+    ctx.beginPath(); ctx.arc(hx, hy, 10, 0, PI2); ctx.fill();
+
+    ctx.fillStyle = "#fff";
+    ctx.beginPath(); ctx.arc(hx, hy, 3, 0, PI2); ctx.fill();
+
+    ctx.strokeStyle = "rgba(255,255,255,0.3)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.ellipse(hx, hy, 14, 14, Date.now() / 400, 0, PI2); ctx.stroke();
+
+    ctx.fillStyle = "rgba(255,200,150,0.9)";
+    ctx.font = "bold 9px 'IBM Plex Mono', monospace";
+    ctx.textAlign = "center";
+    ctx.fillText("🚀 ROCKET", hx, hy - 20);
+  }
+
+  // Gravity assist markers
+  if (result && result.assists) {
+    for (const a of result.assists) {
+      if (a.time > (curPoint ? curPoint.t : 0)) continue;
+      const ax2 = cx + a.x * z, ay2 = cy + a.y * z;
+      const ag = ctx.createRadialGradient(ax2, ay2, 0, ax2, ay2, 18);
+      ag.addColorStop(0, "rgba(255,220,40,0.2)"); ag.addColorStop(1, "transparent");
+      ctx.fillStyle = ag;
+      ctx.beginPath(); ctx.arc(ax2, ay2, 18, 0, PI2); ctx.fill();
+      ctx.strokeStyle = "rgba(255,220,40,0.5)"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(ax2, ay2, 12, 0, PI2); ctx.stroke();
+      ctx.fillStyle = "rgba(255,220,40,0.8)";
+      ctx.font = "bold 8px monospace"; ctx.textAlign = "center";
+      ctx.fillText("⚡ ASSIST", ax2, ay2 - 16);
+    }
+  }
+
+  // HUD
+  if (curPoint && result) {
+    const speedKms = (curPoint.speed / EARTH_V) * REAL_EARTH_V_KMS;
+    const daysFlight = (curPoint.t * 365.25).toFixed(0);
+
+    let distAU = "—";
+    if (dest) {
+      const dp = planetPos(dest, curPoint.absT);
+      const dx = curPoint.x - dp.x, dy = curPoint.y - dp.y;
+      distAU = (Math.sqrt(dx*dx + dy*dy) / AU).toFixed(2);
+    }
+
+    const hudX = 14, hudY = 12;
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
+    roundRect(ctx, hudX, hudY, 195, 72, 6); ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.08)"; ctx.lineWidth = 1;
+    roundRect(ctx, hudX, hudY, 195, 72, 6); ctx.stroke();
+
+    ctx.textAlign = "left";
+    ctx.font = "bold 9px 'IBM Plex Mono', monospace";
+    ctx.fillStyle = "#ff8844";
+    ctx.fillText("SPEED", hudX + 10, hudY + 18);
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 14px 'IBM Plex Mono', monospace";
+    ctx.fillText(speedKms.toFixed(1) + " km/s", hudX + 10, hudY + 35);
+
+    ctx.font = "9px 'IBM Plex Mono', monospace";
+    ctx.fillStyle = "#888";
+    ctx.fillText("DAY " + daysFlight, hudX + 120, hudY + 18);
+
+    ctx.fillStyle = "#00dd66";
+    ctx.font = "bold 9px 'IBM Plex Mono', monospace";
+    ctx.fillText("DIST TO TARGET", hudX + 10, hudY + 52);
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 13px 'IBM Plex Mono', monospace";
+    ctx.fillText(distAU + " AU", hudX + 10, hudY + 67);
+
+    const barX = hudX + 130, barY = hudY + 26, barW = 50, barH = 6;
+    const speedFrac = Math.min(speedKms / 80, 1);
+    ctx.fillStyle = "rgba(255,255,255,0.08)";
+    roundRect(ctx, barX, barY, barW, barH, 3); ctx.fill();
+    const sr2 = Math.min(255, speedFrac * 400) | 0;
+    const sg2 = Math.max(0, 200 - speedFrac * 200) | 0;
+    ctx.fillStyle = `rgb(${sr2},${sg2},40)`;
+    roundRect(ctx, barX, barY, barW * speedFrac, barH, 3); ctx.fill();
+  }
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+const STOP_LABELS = {
+  ARRIVED:   { text: "✓ ARRIVED", cls: "reached" },
+  ESCAPED:   { text: "✗ ESCAPED SOLAR SYSTEM", cls: "escaped" },
+  SUN_CRASH: { text: "☀ CRASHED INTO SUN", cls: "suncrash" },
+  MAX_TIME:  { text: "⏱ MAX SIM TIME REACHED", cls: "missed" },
+};
+
+function launch() {
+  if (animId) cancelAnimationFrame(animId);
+  const boost = +boostSlider.value;
+  const angle = +angleSlider.value;
+  const dest  = destSel.value;
+  const launchDay = +dateSlider.value;
+  const launchTimeYears = launchDay / 365.25;
+
+  result = simulate(boost, angle, dest, launchTimeYears);
+  progress = 0; running = true;
+  placeholder.style.display = "none";
+  launchBtn.disabled = true;
+  launchBtn.textContent = "⟳ RUNNING...";
+  statusEl.textContent = ""; statusEl.className = "";
+  tipEl.style.display = "none";
+
+  const baseFrames = Math.max(300, Math.min(result.trail.length * 0.8, 800));
+  let lastTime = performance.now();
+
+  function tick(now) {
+    const animSpeed = +speedSlider.value;
+    const elapsed = (now - lastTime) / 1000;
+    lastTime = now;
+    const increment = (animSpeed * elapsed * 60) / baseFrames;
+    progress = Math.min(progress + increment, 1);
+    draw(progress);
+    if (progress < 1) {
+      animId = requestAnimationFrame(tick);
+    } else {
+      running = false;
+      launchBtn.disabled = false;
+      launchBtn.textContent = "▶ LAUNCH";
+      showStatus();
+    }
+  }
+  animId = requestAnimationFrame(tick);
+}
+
+function showStatus() {
+  if (!result) return;
+  const days = (result.time * 365.25).toFixed(0);
+  const a = result.assists;
+  const aStr = a.length > 0
+    ? ` · ${a.length} assist${a.length !== 1 ? "s" : ""}: ${a.map(x => x.planet).join(", ")}` : "";
+  const label = STOP_LABELS[result.stopReason] || STOP_LABELS.MAX_TIME;
+  statusEl.className = label.cls;
+  statusEl.innerHTML = `${label.text} <span class="detail">${days} days${aStr}</span>`;
+
+  if (result.stopReason === "ESCAPED") {
+    tipEl.innerHTML = "🚀 Escaped the solar system! Reduce boost or change angle.";
+    tipEl.style.display = "block";
+  } else if (result.stopReason === "SUN_CRASH") {
+    tipEl.innerHTML = "☀️ Crashed into the Sun! Try a different angle for more sideways speed.";
+    tipEl.style.display = "block";
+  } else if (result.stopReason === "MAX_TIME") {
+    tipEl.innerHTML = "⏱ Ran out of sim time. Try launching during a green window with the ideal boost/angle.";
+    tipEl.style.display = "block";
+  } else {
+    tipEl.style.display = "none";
+  }
+}
+
+launchBtn.addEventListener("click", launch);
+resize();
+updateWindowInfo();
+</script>
+</body>
+</html>
