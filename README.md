@@ -4,7 +4,7 @@ An interactive, browser-based simulator that visualizes how spacecraft use plane
 
 **[▶ Try it live here](https://stenjac.github.io/gravity-assist-simulator/)** — or just download `index.html` and double-click it.
 
-<img width="1004" height="610" alt="Screenshot 2026-02-17 at 2 57 01 PM" src="https://github.com/user-attachments/assets/8c30e9d5-564a-4bce-9acd-ffac0ed6667d" />
+<img width="1341" height="615" alt="Screenshot 2026-02-17 at 8 45 21 PM" src="https://github.com/user-attachments/assets/866b4dcb-a67d-41e4-aa93-89d4813788d2" />
 
 ---
 
@@ -76,10 +76,33 @@ Imagine pointing a garden hose at a target 100 feet away. Tilting the nozzle by 
 
 ### Stop Conditions
 The simulation tells you exactly why it ended:
-- ✓ **ARRIVED** — spacecraft entered the target's sphere of influence
+- ✓ **ORBITAL CAPTURE** — spacecraft is slow enough to be captured by the planet's gravity
+- ↗ **FLYBY (TOO FAST)** — spacecraft reached the planet but is moving too fast to be captured, it'll swing past and keep going
 - ✗ **ESCAPED SOLAR SYSTEM** — exceeded 80 AU boundary
 - ☀ **CRASHED INTO SUN** — fell below minimum solar distance
 - ⏱ **MAX SIM TIME REACHED** — 1.5M calculation steps exhausted
+
+### Capture vs Flyby
+When the spacecraft reaches the destination, the simulator compares its **approach speed** (velocity relative to the planet) against the planet's **escape velocity**. If your approach speed is below escape velocity, the planet's gravity is strong enough to hold onto you — like rolling a marble slowly enough into a bowl that it stays. If you're above escape velocity, you fly right through — like that same marble going so fast it rolls up one side and out the other.
+
+A visual panel shows the comparison after arrival:
+- A colored bar for your approach speed
+- A white marker line for escape velocity
+- The margin (how much under or over you are)
+
+Real escape velocities used:
+
+| Planet | Escape Velocity |
+|---|---|
+| Mercury | 4.25 km/s |
+| Venus | 10.36 km/s |
+| Mars | 5.03 km/s |
+| Jupiter | 59.5 km/s |
+| Saturn | 35.5 km/s |
+| Uranus | 21.3 km/s |
+| Neptune | 23.5 km/s |
+
+In real missions, even a "flyby" spacecraft can achieve capture with a braking burn (firing engines to slow down). The Δv required equals the excess speed shown by the simulator.
 
 Each stop condition displays a contextual tip for what to adjust.
 
