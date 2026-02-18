@@ -27,6 +27,8 @@
   .name { font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #aaa; }
   #status { margin-left: auto; font-size: 10px; letter-spacing: 0.5px; font-weight: 700; }
   #status.reached { color: #00ee77; }
+  #status.captured { color: #00ee77; }
+  #status.flyby   { color: #ffaa22; }
   #status.missed  { color: #ff6644; }
   #status.escaped { color: #bb88ff; }
   #status.suncrash { color: #ffcc22; }
@@ -80,7 +82,7 @@
   #canvas-wrap { flex: 1; position: relative; min-height: 0; }
   #canvas-wrap canvas { width: 100%; height: 100%; display: block; }
   #placeholder {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
     text-align: center; color: #444; font-size: 12px; letter-spacing: 0.5px;
     pointer-events: none; line-height: 1.8;
   }
@@ -151,11 +153,10 @@
 <div id="canvas-wrap">
   <canvas id="canvas"></canvas>
   <div id="placeholder">
-    <div class="icon">◈</div>
-    <div style="color:#555">Choose a destination, find a launch window, and hit LAUNCH</div>
+    <div style="color:#555">◈ Choose a destination, find a launch window, and hit LAUNCH</div>
     <div class="sub">
-      The green strip shows optimal launch dates — drag the Launch Date slider to a green zone,
-      then hit Launch. The phase angle between Earth and the target must be just right,
+      The green strip above shows optimal launch dates. Drag the Launch Date slider to a green zone,
+      then hit Launch. The phase angle between Earth and the target must be just right —
       like timing a pass to a teammate running across a field.
     </div>
   </div>
@@ -172,14 +173,14 @@ const MAX_STEPS = 1500000;
 const MAX_DAYS = 1200;
 
 const PLANETS = [
-  { name:"Mercury", r:0.387, rad:3,  color:"#c4b8b8", gm:GM_SUN*8e-5,  T:0.241  },
-  { name:"Venus",   r:0.723, rad:5,  color:"#e8cda0", gm:GM_SUN*3e-4,  T:0.615  },
-  { name:"Earth",   r:1.0,   rad:5,  color:"#5aadff", gm:GM_SUN*3e-4,  T:1.0    },
-  { name:"Mars",    r:1.524, rad:4,  color:"#d4714a", gm:GM_SUN*1.5e-4, T:1.881  },
-  { name:"Jupiter", r:5.203, rad:11, color:"#d4ad6a", gm:GM_SUN*1.2e-3, T:11.86  },
-  { name:"Saturn",  r:9.537, rad:9,  color:"#e8d5a3", gm:GM_SUN*4e-4,  T:29.46  },
-  { name:"Uranus",  r:19.19, rad:7,  color:"#7ecbc4", gm:GM_SUN*8e-5,  T:84.01  },
-  { name:"Neptune", r:30.07, rad:7,  color:"#5577ee", gm:GM_SUN*8e-5,  T:164.8  },
+  { name:"Mercury", r:0.387, rad:3,  color:"#c4b8b8", gm:GM_SUN*8e-5,  T:0.241, escVel:4.25  },
+  { name:"Venus",   r:0.723, rad:5,  color:"#e8cda0", gm:GM_SUN*3e-4,  T:0.615, escVel:10.36 },
+  { name:"Earth",   r:1.0,   rad:5,  color:"#5aadff", gm:GM_SUN*3e-4,  T:1.0,   escVel:11.19 },
+  { name:"Mars",    r:1.524, rad:4,  color:"#d4714a", gm:GM_SUN*1.5e-4, T:1.881, escVel:5.03  },
+  { name:"Jupiter", r:5.203, rad:11, color:"#d4ad6a", gm:GM_SUN*1.2e-3, T:11.86, escVel:59.5  },
+  { name:"Saturn",  r:9.537, rad:9,  color:"#e8d5a3", gm:GM_SUN*4e-4,  T:29.46, escVel:35.5  },
+  { name:"Uranus",  r:19.19, rad:7,  color:"#7ecbc4", gm:GM_SUN*8e-5,  T:84.01, escVel:21.3  },
+  { name:"Neptune", r:30.07, rad:7,  color:"#5577ee", gm:GM_SUN*8e-5,  T:164.8, escVel:23.5  },
 ];
 
 function planetPos(p, t) {
@@ -249,6 +250,7 @@ function simulate(boostPct, angleDeg, destName, launchTimeYears) {
   const trail = [];
   const assists = [];
   let time = t0, stopReason = "MAX_TIME";
+  let captureInfo = null;
 
   for (let i = 0; i < MAX_STEPS; i++) {
     const ds = Math.sqrt(x*x + y*y);
@@ -263,7 +265,24 @@ function simulate(boostPct, angleDeg, destName, launchTimeYears) {
       // Arrival zone for destination is much wider (like entering its sphere of influence)
       const arrivalR = p.name === dest?.name ? Math.max(p.rad * 5, 18) : p.rad * 1.2;
       if (d < arrivalR) {
-        if (p.name === dest?.name && (time - t0) > 0.01) stopReason = "ARRIVED";
+        if (p.name === dest?.name && (time - t0) > 0.01) {
+          stopReason = "ARRIVED";
+          // Compute velocity relative to planet
+          const pOrbSpeed = PI2 * p.r * AU / p.T;
+          const pAngle = Math.atan2(pp.y, pp.x);
+          const pvx = -pOrbSpeed * Math.sin(pAngle);
+          const pvy =  pOrbSpeed * Math.cos(pAngle);
+          const relVx = vx - pvx;
+          const relVy = vy - pvy;
+          const relSpeed = Math.sqrt(relVx*relVx + relVy*relVy);
+          const relSpeedKms = (relSpeed / EARTH_V) * REAL_EARTH_V_KMS;
+          const captured = relSpeedKms < p.escVel;
+          captureInfo = {
+            relVelKms: relSpeedKms,
+            escVelKms: p.escVel,
+            captured,
+          };
+        }
         if (p.name === "Earth" && (time - t0) < 0.02) continue;
       }
       if (d > p.rad * 1.2) {
@@ -288,7 +307,7 @@ function simulate(boostPct, angleDeg, destName, launchTimeYears) {
     }
     if (Math.sqrt(x*x + y*y) > BOUNDARY_AU * AU) { stopReason = "ESCAPED"; break; }
   }
-  return { trail, time: time - t0, stopReason, assists, t0 };
+  return { trail, time: time - t0, stopReason, assists, t0, captureInfo };
 }
 
 // ── DOM ────────────────────────────────────────────────────────────
@@ -697,6 +716,70 @@ function draw(prog) {
     const sg2 = Math.max(0, 200 - speedFrac * 200) | 0;
     ctx.fillStyle = `rgb(${sr2},${sg2},40)`;
     roundRect(ctx, barX, barY, barW * speedFrac, barH, 3); ctx.fill();
+
+    // Capture verdict panel (shows after arrival)
+    if (result.captureInfo && progress >= 1) {
+      const ci = result.captureInfo;
+      const cvX = hudX, cvY = hudY + 82;
+      const cvW = 210, cvH = 68;
+
+      // Background
+      const borderColor = ci.captured ? "rgba(0,238,119,0.3)" : "rgba(255,170,34,0.3)";
+      ctx.fillStyle = "rgba(0,0,0,0.6)";
+      roundRect(ctx, cvX, cvY, cvW, cvH, 6); ctx.fill();
+      ctx.strokeStyle = borderColor; ctx.lineWidth = 1.5;
+      roundRect(ctx, cvX, cvY, cvW, cvH, 6); ctx.stroke();
+
+      ctx.textAlign = "left";
+
+      // Verdict label
+      if (ci.captured) {
+        ctx.fillStyle = "#00ee77";
+        ctx.font = "bold 10px 'IBM Plex Mono', monospace";
+        ctx.fillText("🎯 CAPTURED INTO ORBIT", cvX + 10, cvY + 17);
+      } else {
+        ctx.fillStyle = "#ffaa22";
+        ctx.font = "bold 10px 'IBM Plex Mono', monospace";
+        ctx.fillText("↗ FLYBY — NOT CAPTURED", cvX + 10, cvY + 17);
+      }
+
+      // Approach speed vs escape velocity bar
+      const maxV = Math.max(ci.relVelKms, ci.escVelKms) * 1.3;
+      const bX = cvX + 10, bY = cvY + 26, bW = cvW - 20, bH2 = 8;
+
+      // Approach speed bar
+      ctx.fillStyle = "rgba(255,255,255,0.06)";
+      roundRect(ctx, bX, bY, bW, bH2, 3); ctx.fill();
+      const appFrac = Math.min(ci.relVelKms / maxV, 1);
+      ctx.fillStyle = ci.captured ? "#00cc66" : "#ff8833";
+      roundRect(ctx, bX, bY, bW * appFrac, bH2, 3); ctx.fill();
+
+      // Escape velocity marker line
+      const escFrac = Math.min(ci.escVelKms / maxV, 1);
+      const escLineX = bX + bW * escFrac;
+      ctx.strokeStyle = "rgba(255,255,255,0.8)";
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(escLineX, bY - 2); ctx.lineTo(escLineX, bY + bH2 + 2); ctx.stroke();
+
+      // Labels
+      ctx.font = "8px 'IBM Plex Mono', monospace";
+      ctx.fillStyle = ci.captured ? "#88eebb" : "#ffcc88";
+      ctx.textAlign = "left";
+      ctx.fillText("Approach: " + ci.relVelKms.toFixed(1) + " km/s", bX, bY + bH2 + 12);
+      ctx.fillStyle = "rgba(255,255,255,0.6)";
+      ctx.textAlign = "right";
+      ctx.fillText("Escape vel: " + ci.escVelKms.toFixed(1) + " km/s ▼", bX + bW, bY + bH2 + 12);
+
+      // Margin
+      ctx.textAlign = "left";
+      if (ci.captured) {
+        ctx.fillStyle = "#00ee77";
+        ctx.fillText("Margin: " + (ci.escVelKms - ci.relVelKms).toFixed(1) + " km/s under", bX, bY + bH2 + 24);
+      } else {
+        ctx.fillStyle = "#ffaa22";
+        ctx.fillText("Excess: " + (ci.relVelKms - ci.escVelKms).toFixed(1) + " km/s over", bX, bY + bH2 + 24);
+      }
+    }
   }
 }
 
@@ -714,7 +797,8 @@ function roundRect(ctx, x, y, w, h, r) {
 }
 
 const STOP_LABELS = {
-  ARRIVED:   { text: "✓ ARRIVED", cls: "reached" },
+  CAPTURED:  { text: "✓ ORBITAL CAPTURE", cls: "captured" },
+  FLYBY:     { text: "↗ FLYBY (TOO FAST)", cls: "flyby" },
   ESCAPED:   { text: "✗ ESCAPED SOLAR SYSTEM", cls: "escaped" },
   SUN_CRASH: { text: "☀ CRASHED INTO SUN", cls: "suncrash" },
   MAX_TIME:  { text: "⏱ MAX SIM TIME REACHED", cls: "missed" },
@@ -764,11 +848,38 @@ function showStatus() {
   const a = result.assists;
   const aStr = a.length > 0
     ? ` · ${a.length} assist${a.length !== 1 ? "s" : ""}: ${a.map(x => x.planet).join(", ")}` : "";
-  const label = STOP_LABELS[result.stopReason] || STOP_LABELS.MAX_TIME;
-  statusEl.className = label.cls;
-  statusEl.innerHTML = `${label.text} <span class="detail">${days} days${aStr}</span>`;
 
-  if (result.stopReason === "ESCAPED") {
+  // Determine the effective stop reason (split ARRIVED into CAPTURED vs FLYBY)
+  let effectiveReason = result.stopReason;
+  if (result.stopReason === "ARRIVED" && result.captureInfo) {
+    effectiveReason = result.captureInfo.captured ? "CAPTURED" : "FLYBY";
+  }
+
+  const label = STOP_LABELS[effectiveReason] || STOP_LABELS.MAX_TIME;
+  statusEl.className = label.cls;
+
+  let captureDetail = "";
+  if (result.captureInfo) {
+    const ci = result.captureInfo;
+    captureDetail = ` · approach: ${ci.relVelKms.toFixed(1)} km/s vs escape: ${ci.escVelKms.toFixed(1)} km/s`;
+  }
+
+  statusEl.innerHTML = `${label.text} <span class="detail">${days} days${aStr}${captureDetail}</span>`;
+
+  if (effectiveReason === "FLYBY") {
+    const ci = result.captureInfo;
+    const excess = (ci.relVelKms - ci.escVelKms).toFixed(1);
+    tipEl.innerHTML = `↗ You reached ${destSel.value} but were going ${excess} km/s too fast to be captured. ` +
+      `Try reducing your boost — you need your approach speed under ${ci.escVelKms} km/s. ` +
+      `Think of it like rolling a marble into a bowl: too fast and it rolls right over.`;
+    tipEl.style.display = "block";
+  } else if (effectiveReason === "CAPTURED") {
+    const ci = result.captureInfo;
+    const margin = (ci.escVelKms - ci.relVelKms).toFixed(1);
+    tipEl.innerHTML = `🎯 The planet's gravity captured the spacecraft with ${margin} km/s to spare. ` +
+      `In reality, a small braking burn would circularize the orbit from here.`;
+    tipEl.style.display = "block";
+  } else if (result.stopReason === "ESCAPED") {
     tipEl.innerHTML = "🚀 Escaped the solar system! Reduce boost or change angle.";
     tipEl.style.display = "block";
   } else if (result.stopReason === "SUN_CRASH") {
