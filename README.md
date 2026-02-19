@@ -50,6 +50,40 @@ It's like running alongside a moving train and grabbing a handrail for a second.
 
 NASA's Voyager missions used this trick to visit four planets with barely enough fuel for one.
 
+### How often is gravity assist actually used?
+
+It depends on the destination. For short trips to Mars or Venus, most missions skip it entirely — a direct Hohmann transfer gets you there with manageable fuel costs, and adding a gravity assist would mean a longer, more complex route. Mars Perseverance, Curiosity, InSight, and most Mars orbiters all took direct shots. It's like driving across town: you don't need to draft behind a semi truck to save gas.
+
+For anything past Mars, it's a different story. The fuel math gets brutal for outer planets. A direct shot to Jupiter requires about 9 km/s of delta-v; a Venus-Earth gravity assist path gets you there for about 6 km/s. That 3 km/s difference translates to exponentially more fuel thanks to the tyranny of the rocket equation — saving a little velocity at the top means dramatically less fuel at the bottom.
+
+Notable real missions and their assist chains:
+
+| Mission | Destination | Gravity Assists |
+|---|---|---|
+| Voyager 1 | Interstellar | Jupiter → Saturn |
+| Voyager 2 | Interstellar | Jupiter → Saturn → Uranus → Neptune |
+| Cassini | Saturn | Venus → Venus → Earth → Jupiter |
+| Galileo | Jupiter | Venus → Earth → Earth |
+| New Horizons | Pluto | Jupiter |
+| Messenger | Mercury | Earth → Venus → Venus → Mercury → Mercury → Mercury |
+| BepiColombo | Mercury | Earth → Venus → Venus → Mercury → Mercury → Mercury → Mercury → Mercury → Mercury |
+
+**See these trajectories visualized:**
+
+- 🪐 **Voyager 2 Grand Tour** — [NASA Scientific Visualization Studio](https://svs.gsfc.nasa.gov/4140/) has a full animated visualization of Voyager 2's trajectory from Earth through Neptune and beyond, showing each gravity assist bending the path. Also see [The Planetary Society's detailed breakdown](https://www.planetary.org/articles/20130926-gravity-assist) with vector diagrams showing how speed changes at each flyby, plus a chart of Voyager 2's velocity vs. distance proving it was below solar escape velocity until Jupiter's assist boosted it past the threshold.
+
+- 🪐 **Cassini's VVEJGA trajectory** — [NASA's Cassini trajectory page](https://science.nasa.gov/resource/cassini-trajectory/) shows the full Venus-Venus-Earth-Jupiter-Saturn path diagram. The [VVEJGA Trajectory Lithograph (PDF)](https://solarsystem.nasa.gov/system/downloadable_items/1946_trajectory.pdf) is a beautifully illustrated one-page explainer of how each flyby added velocity. Also see the [interactive Cassini flight path](https://www.theplanetstoday.com/cassini_flight_path.html) showing the spacecraft's real position over time.
+
+- 🪐 **MESSENGER's reverse slingshots to Mercury** — [Johns Hopkins APL mission design page](https://messenger.jhuapl.edu/About/Mission-Design.html) has an interactive trajectory viewer where you can highlight each leg of the journey. NASA's [15th anniversary retrospective](https://www.nasa.gov/history/15-years-ago-messenger-launched-to-orbit-mercury/) includes the full trajectory diagram showing all six gravity assists. The [interactive flight path animation](https://www.theplanetstoday.com/messenger_flight_path.html) lets you scrub through the entire mission timeline.
+
+- 🪐 **NASA's Gravity Assist Primer** — [Basics of Space Flight](https://science.nasa.gov/learn/basics-of-space-flight/primer/) is NASA's own explainer with vector diagrams showing how a flyby adds velocity in the Sun's reference frame even though the spacecraft's speed doesn't change relative to the planet.
+
+Messenger and BepiColombo are interesting because they fly to an *inner* planet. Getting to Mercury is counterintuitively hard — you need to shed a huge amount of speed, so they use repeated planetary flybys to gradually slow down instead of burning enormous amounts of fuel.
+
+Roughly 30-40% of all interplanetary missions have used gravity assists, but that number is skewed by the fact that we've sent a *lot* of missions to Mars. If you filter to missions going past the asteroid belt, the figure is essentially 100%.
+
+**A note on this simulator's planet masses:** In reality, a gravity assist from Jupiter changes your speed by 10-20 km/s relative to the Sun, but this happens over a subtle, wide curve spanning millions of kilometers. At the scale of this simulator's canvas, that curve would be nearly invisible. The planet masses in the sim are inflated ~50-100x so the trajectory bends are dramatic enough to see and learn from. The concept is identical, just the visual scale is exaggerated.
+
 ### Why small angle changes matter so much
 
 Imagine pointing a garden hose at a target 100 feet away. Tilting the nozzle by half a degree barely changes where the water lands at your feet, but shifts the landing spot by several feet at the far end. Same idea — a 5° change at Earth translates to millions of miles of difference by the time the rocket reaches Mars.
