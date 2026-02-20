@@ -308,7 +308,6 @@ This is an intuition-builder, not a mission planner. Key simplifications:
 ```
 gravity-assist-simulator/
 ├── index.html                  # The entire simulator (single file, ~1100 lines)
-├── launch-angle-diagram.svg    # Visual explainer for launch angle concept
 ├── README.md                   # This file
 └── LICENSE                     # MIT License
 ```
