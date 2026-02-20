@@ -92,10 +92,81 @@ Imagine pointing a garden hose at a target 100 feet away. Tilting the nozzle by 
 
 ### Controls
 - **Destination** — any planet from Mercury to Neptune
-- **Boost (Δv)** — percentage of Earth's orbital speed (~29.78 km/s) added at launch
-- **Launch Angle** — direction of the boost relative to Earth's position (-180° to 180°)
+- **Rocket Class** — determines your Δv budget (see below)
+- **Boost (Δv)** — departure velocity added at launch, auto-capped to your rocket's budget
+- **Launch Angle** — direction of the boost relative to Earth's orbital motion (see below)
 - **Zoom** — 0.08x to 4x magnification
 - **Animation Speed** — 0.01x (slow-motion) to 5x, adjustable mid-flight
+
+### Rocket Classes & Fuel Budget
+
+The simulator models real propulsion constraints through a **Δv budget** system. Delta-v (Δv) is the total velocity change a rocket can produce — think of it as the "mileage" of a spacecraft. Once you've burned through your budget, you're coasting on momentum and gravity alone.
+
+Four rocket classes are available:
+
+| Class | Δv Budget | Max Boost | Real-World Equivalent | Cost |
+|---|---|---|---|---|
+| Scout (Small) | 4.0 km/s | ~13% | Rocket Lab Electron, PSLV | ~$7-8M |
+| Workhorse (Medium) | 7.0 km/s | ~23% | Falcon 9, Atlas V, Ariane 5 | ~$60-100M |
+| Heavy Lift | 11.0 km/s | ~37% | SLS, Falcon Heavy + kick stage | ~$150M-2B |
+| Unlimited | ∞ | 60% | (No constraint — for exploration) | — |
+
+**Why this matters:** The boost slider is physically capped to your selected rocket's Δv budget. A Scout physically cannot produce more than 4 km/s of departure Δv — the slider won't go higher, just like a real Scout rocket's fuel tanks won't get bigger mid-flight.
+
+The **reachability strip** below the rocket selector shows which planets are within range:
+- 🟢 **Green** — reachable with a direct shot (Δv budget ≥ direct cost)
+- 🟡 **Orange (★)** — unreachable directly, but reachable *with gravity assists* (the whole point!)
+- ⬛ **Dim** — out of range even with assists
+
+Hover over any planet pill to see exact Δv costs for direct vs. assisted routes.
+
+**The key demonstration:** Select "Workhorse" and look at Jupiter. Direct cost is 8.8 km/s (over budget), but an assisted route via Venus-Earth-Earth costs only 4.0 km/s (within budget). That's not a small savings — the rocket equation is exponential, so that 4.8 km/s difference means roughly 4-5x more fuel mass. Without gravity assists, Jupiter would require a Heavy Lift rocket costing 10-20x more. The Juno mission to Jupiter actually did exactly this — launched on an Atlas V (Workhorse class), used an Earth gravity assist two years later, and reached Jupiter on a budget that would have been impossible with a direct shot.
+
+Δv costs used in the simulator (km/s of departure Δv from Earth):
+
+| Destination | Direct Cost | With Gravity Assists | Assist Route |
+|---|---|---|---|
+| Mercury | 5.5 | 3.5 | via Venus |
+| Venus | 2.5 | 2.5 | Direct is optimal |
+| Mars | 2.9 | 2.9 | Direct is optimal |
+| Jupiter | 8.8 | 4.0 | via Venus-Earth-Earth |
+| Saturn | 10.3 | 4.5 | via Venus-Venus-Earth-Jupiter |
+| Uranus | 11.3 | 5.5 | via Jupiter |
+| Neptune | 11.7 | 6.0 | via Jupiter |
+
+Notice Venus and Mars don't benefit from assists — they're close enough that a direct Hohmann transfer is already cheap. But past Mars, the savings are dramatic and grow with distance.
+
+**The Rocket Equation — Why Δv Is So Expensive:**
+
+The Tsiolkovsky rocket equation says: `Δv = exhaust_velocity × ln(full_mass / empty_mass)`. That natural logarithm is the villain. To double your Δv, you don't need double the fuel — you need exponentially more. It's like packing for a hiking trip: every extra pound of water means extra food to carry it, which means a bigger pack, which means sturdier boots, which means more energy and more food... Each addition cascades. A rocket that needs 11 km/s instead of 4 km/s doesn't carry 3x more fuel, it carries something like 10-15x more fuel by mass. This is why gravity assists aren't just a nice optimization — for outer planet missions, they're the difference between "mission exists" and "no rocket on Earth can do it."
+
+**In-flight fuel gauge:** During flight, the HUD shows a fuel bar — orange for Δv spent on launch, green for remaining budget. When the rocket receives a gravity assist, a yellow label shows the free Δv gained from the flyby.
+
+### Launch Angle
+
+The launch angle controls *which direction* the rocket fires relative to Earth's orbital motion around the Sun. It's measured in degrees from Earth's velocity vector (the direction Earth is currently traveling).
+
+![Launch Angle Diagram](launch-angle-diagram.svg)
+
+Think of Earth as a car driving in a circle around the Sun. The launch angle determines which direction you throw a ball out the window:
+
+- **0° (Prograde)** — throw the ball forward, in the direction the car is moving. This *adds* to Earth's orbital speed, pushing the rocket into a wider orbit that reaches outer planets. **Use 0° for Mars, Jupiter, Saturn, and all outer planets.**
+
+- **180° (Retrograde)** — throw the ball backward, against the car's motion. This *subtracts* from Earth's orbital speed, causing the rocket to fall into a tighter orbit closer to the Sun. **Use 180° for Mercury and Venus.**
+
+- **90° / -90°** — throw the ball out the side window. This mostly changes the orbit's tilt rather than its size. Rarely useful for reaching planets (since all planets orbit in roughly the same plane), but real missions sometimes use slight angle offsets for fine-tuning.
+
+**Recommended settings by destination:**
+
+| Destination | Recommended Angle | Why |
+|---|---|---|
+| Mars | 0° | Add speed to reach a wider orbit |
+| Jupiter | 0° | Add speed to reach a much wider orbit |
+| Saturn+ | 0° | Same principle, more speed needed |
+| Venus | ~180° | Subtract speed to drop inward |
+| Mercury | ~180° | Subtract speed to drop much further inward |
+
+In practice, small deviations from 0° or 180° (say, ±10-20°) can fine-tune your arrival geometry, but the big picture is simple: outer planets = 0°, inner planets = 180°. The simulator auto-sets the boost amount to the Hohmann ideal when you switch destinations, but the angle is left for you to experiment with — try wildly different angles and watch how the trajectory shape changes.
 
 ### Launch Window Finder
 - **Launch Date slider** — scrub through 1,200 days to see planetary positions change
@@ -167,22 +238,34 @@ npx serve .
 ## Quick Start: Reaching Mars
 
 1. Select **Mars** as destination
-2. Note the ideal phase angle displayed (~44°)
-3. Drag the **Launch Date** slider until the phase angle readout shows ~44° (look for green zones in the strip)
-4. Set **Boost** to ~10-12%
-5. Set **Launch Angle** to ~0°
-6. Hit **▶ LAUNCH**
-7. You should arrive in ~260 days
+2. Select **Scout** or **Workhorse** as rocket class (Mars is reachable even on a Scout — it's a short trip)
+3. Note the ideal phase angle displayed (~44°)
+4. Drag the **Launch Date** slider until the phase angle readout shows ~44° (look for green zones in the strip)
+5. **Boost** will auto-set to ~10% — leave it there
+6. Set **Launch Angle** to **0°** (prograde — firing in the direction Earth is moving)
+7. Hit **▶ LAUNCH**
+8. You should arrive in ~260 days
 
 ### Quick Start: Reaching Mercury
 
 Mercury is counterintuitive — you need to *slow down* to fall inward:
 
 1. Select **Mercury** as destination
-2. Find a launch window with phase angle ~109°
-3. Set **Boost** to ~15%
-4. Set **Launch Angle** to ~180° (retrograde — firing against Earth's motion)
-5. Hit **▶ LAUNCH**
+2. Select **Workhorse** or higher (Mercury's direct cost of 5.5 km/s is too high for a Scout — notice it shows as orange "needs assist" on Scout!)
+3. Find a launch window with phase angle ~109°
+4. **Boost** will auto-set to ~15%
+5. Set **Launch Angle** to **~180°** (retrograde — firing against Earth's motion to shed speed)
+6. Hit **▶ LAUNCH**
+
+### Quick Start: The Gravity Assist Argument
+
+This is the "aha moment" scenario:
+
+1. Select **Jupiter** as destination
+2. Select **Scout** (4 km/s budget) — notice Jupiter shows as **dim/unreachable**. A Scout can't get there at all.
+3. Switch to **Workhorse** (7 km/s) — Jupiter turns **orange (★ needs assist)**. Direct cost is 8.8 km/s (over budget), but with a gravity assist chain it's only 4.0 km/s (within budget!)
+4. Switch to **Heavy Lift** (11 km/s) — Jupiter turns **green**. You can brute-force it, but you're spending $2 billion instead of $67 million.
+5. Switch back to **Workhorse** — now try launching toward Jupiter with a trajectory that passes near Venus or Earth for a free speed boost. That's how Juno, Galileo, and Cassini actually reached their destinations.
 
 ## Technical Details
 
@@ -219,9 +302,10 @@ This is an intuition-builder, not a mission planner. Key simplifications:
 
 ```
 gravity-assist-simulator/
-├── index.html      # The entire simulator (single file, ~500 lines)
-├── README.md       # This file
-└── LICENSE         # MIT License
+├── index.html                  # The entire simulator (single file, ~1100 lines)
+├── launch-angle-diagram.svg    # Visual explainer for launch angle concept
+├── README.md                   # This file
+└── LICENSE                     # MIT License
 ```
 
 Yes, the whole thing is one HTML file. No build step, no dependencies, no node_modules folder the size of a black hole.
