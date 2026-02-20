@@ -92,6 +92,36 @@
   #angle-slider { accent-color: #5aadff; }
   #zoom-slider  { accent-color: #7ecbc4; }
   #speed-slider { accent-color: #bb88ff; }
+
+  /* Fuel & Reachability */
+  #fuel-section {
+    margin-top: 8px; padding-top: 8px;
+    border-top: 1px solid rgba(255,255,255,0.04);
+  }
+  #fuel-header {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 6px; flex-wrap: wrap;
+  }
+  #fuel-header .flabel { font-size: 9px; color: #888; letter-spacing: 0.5px; }
+  #fuel-header .fbudget { font-size: 10px; font-weight: 700; }
+  #fuel-header .fbudget.ok { color: #00dd66; }
+  #fuel-header .fbudget.over { color: #ff5533; }
+  #fuel-header .fdetail { font-size: 8px; color: #555; }
+  #reachability {
+    display: flex; gap: 4px; flex-wrap: wrap; align-items: center;
+  }
+  .reach-pill {
+    font-size: 8px; padding: 2px 6px; border-radius: 3px;
+    font-weight: 600; letter-spacing: 0.3px; white-space: nowrap;
+  }
+  .reach-pill.direct { background: rgba(0,238,119,0.15); color: #00dd66; border: 1px solid rgba(0,238,119,0.2); }
+  .reach-pill.assisted { background: rgba(255,170,34,0.12); color: #ffaa22; border: 1px solid rgba(255,170,34,0.15); }
+  .reach-pill.unreachable { background: rgba(255,60,40,0.08); color: #664433; border: 1px solid rgba(255,60,40,0.06); }
+  .reach-pill .cost { font-weight: 400; opacity: 0.7; }
+  #rocket-select {
+    background: #111120; border: 1px solid rgba(255,255,255,0.08);
+    color: #ddd; padding: 5px 8px; border-radius: 4px;
+    font-size: 11px; font-family: inherit;
+  }
 </style>
 </head>
 <body>
@@ -106,6 +136,10 @@
     <div>
       <label style="font-size:9px;color:#888;display:block;margin-bottom:2px">DESTINATION</label>
       <select id="dest-select"></select>
+    </div>
+    <div>
+      <label style="font-size:9px;color:#888;display:block;margin-bottom:2px">ROCKET CLASS</label>
+      <select id="rocket-select"></select>
     </div>
     <button id="launch-btn">▶ LAUNCH</button>
   </div>
@@ -145,6 +179,18 @@
       <span>Day 900</span>
       <span>Day 1200</span>
     </div>
+  </div>
+
+  <!-- Fuel budget & reachability -->
+  <div id="fuel-section">
+    <div id="fuel-header">
+      <span class="flabel">ROCKET: <span class="v" id="rocket-name">—</span></span>
+      <span class="flabel">Δv BUDGET: <span class="fbudget ok" id="budget-display">— km/s</span></span>
+      <span class="flabel">LAUNCH COST: <span class="v" id="launch-cost-display">— km/s</span></span>
+      <span class="fdetail" id="fuel-equation"></span>
+    </div>
+    <div style="font-size:8px;color:#555;margin-bottom:4px;letter-spacing:0.3px">REACHABILITY — <span style="color:#00dd66">■</span> direct <span style="color:#ffaa22">■</span> needs assist <span style="color:#443322">■</span> out of range</div>
+    <div id="reachability"></div>
   </div>
 
   <div id="tip"></div>
@@ -187,6 +233,31 @@ function planetPos(p, t) {
   const a = PI2 * t / p.T;
   return { x: p.r * AU * Math.cos(a), y: p.r * AU * Math.sin(a) };
 }
+
+// ── Δv costs and rocket classes ────────────────────────────────────
+// Departure Δv from Earth orbit (km/s above Earth's orbital velocity)
+const DV_COSTS = {
+  Mercury: { direct: 5.5, assisted: 3.5, assistRoute: "via Venus" },
+  Venus:   { direct: 2.5, assisted: 2.5, assistRoute: "direct is optimal" },
+  Mars:    { direct: 2.9, assisted: 2.9, assistRoute: "direct is optimal" },
+  Jupiter: { direct: 8.8, assisted: 4.0, assistRoute: "via Venus-Earth-Earth" },
+  Saturn:  { direct: 10.3, assisted: 4.5, assistRoute: "via Venus-Venus-Earth-Jupiter" },
+  Uranus:  { direct: 11.3, assisted: 5.5, assistRoute: "via Jupiter" },
+  Neptune: { direct: 11.7, assisted: 6.0, assistRoute: "via Jupiter" },
+};
+
+// Rocket classes with Δv budgets derived from the rocket equation:
+// Δv = ve × ln(m0/mf), where ve = Isp × 9.81
+const ROCKETS = [
+  { name: "Scout (Small)", budget: 4.0,  isp: 310, fuelFrac: 0.72,
+    desc: "Small launcher, chemical engine. Like Atlas V with a light probe." },
+  { name: "Workhorse (Medium)", budget: 7.0, isp: 320, fuelFrac: 0.80,
+    desc: "Medium launcher, bipropellant engine. Like Delta IV." },
+  { name: "Heavy Lift", budget: 11.0, isp: 450, fuelFrac: 0.82,
+    desc: "Heavy launcher, high-efficiency engine. Like SLS or Falcon Heavy + kick stage." },
+  { name: "Unlimited (No Limit)", budget: 999, isp: 0, fuelFrac: 0,
+    desc: "No fuel constraint. For exploring trajectories freely." },
+];
 
 // ── Hohmann transfer calculations ──────────────────────────────────
 function hohmannParams(destPlanet) {
@@ -333,6 +404,12 @@ const dateVal  = document.getElementById("date-val");
 const phaseCurrent = document.getElementById("phase-current");
 const phaseIdeal   = document.getElementById("phase-ideal");
 const transferInfo = document.getElementById("transfer-info");
+const rocketSel = document.getElementById("rocket-select");
+const budgetDisplay = document.getElementById("budget-display");
+const launchCostDisplay = document.getElementById("launch-cost-display");
+const rocketNameDisplay = document.getElementById("rocket-name");
+const fuelEquation = document.getElementById("fuel-equation");
+const reachabilityEl = document.getElementById("reachability");
 
 PLANETS.filter(p => p.name !== "Earth").forEach(p => {
   const opt = document.createElement("option");
@@ -340,7 +417,103 @@ PLANETS.filter(p => p.name !== "Earth").forEach(p => {
   destSel.appendChild(opt);
 });
 
-boostSlider.oninput = () => { boostVal.textContent = boostSlider.value + "%"; };
+ROCKETS.forEach((r, i) => {
+  const opt = document.createElement("option");
+  opt.value = i;
+  opt.textContent = r.budget < 100 ? `${r.name} — ${r.budget} km/s` : `${r.name}`;
+  rocketSel.appendChild(opt);
+});
+
+function getCurrentRocket() { return ROCKETS[+rocketSel.value]; }
+function getBoostKms() { return (+boostSlider.value / 100) * REAL_EARTH_V_KMS; }
+
+function updateBoostDisplay() {
+  const pct = +boostSlider.value;
+  const kms = getBoostKms();
+  const rocket = getCurrentRocket();
+  const maxKms = rocket.budget < 100 ? rocket.budget : 60 * REAL_EARTH_V_KMS / 100;
+  const atMax = rocket.budget < 100 && Math.abs(kms - rocket.budget) < 0.2;
+  const pctOfBudget = rocket.budget < 100 ? (kms / rocket.budget * 100).toFixed(0) : null;
+
+  let label = `${pct.toFixed(1)}% (${kms.toFixed(1)} km/s)`;
+  if (atMax) label += " ← MAX";
+  boostVal.textContent = label;
+  boostVal.style.color = atMax ? "#ff8844" : "#ccc";
+
+  launchCostDisplay.textContent = pctOfBudget
+    ? `${kms.toFixed(1)} km/s (${pctOfBudget}% of budget)`
+    : `${kms.toFixed(1)} km/s`;
+  launchCostDisplay.style.color = atMax ? "#ff8844" : "#ccc";
+}
+
+function updateRocketInfo() {
+  const rocket = getCurrentRocket();
+  rocketNameDisplay.textContent = rocket.name;
+
+  // Constrain boost slider to rocket's Δv budget
+  const maxPct = rocket.budget < 100
+    ? (rocket.budget / REAL_EARTH_V_KMS * 100).toFixed(1)
+    : 60;
+  boostSlider.max = maxPct;
+
+  // Clamp current value if it exceeds new max
+  if (+boostSlider.value > +maxPct) {
+    boostSlider.value = maxPct;
+  }
+
+  // Set a smart default: use Hohmann ideal for current destination, clamped to budget
+  const dest = PLANETS.find(p => p.name === destSel.value);
+  if (dest) {
+    const h = hohmannParams(dest);
+    const idealPct = Math.min(h.boostPct, +maxPct);
+    boostSlider.value = Math.max(1, idealPct).toFixed(1);
+  }
+
+  if (rocket.budget < 100) {
+    budgetDisplay.textContent = rocket.budget.toFixed(1) + " km/s";
+    budgetDisplay.className = "fbudget ok";
+    fuelEquation.textContent = rocket.isp > 0
+      ? `Isp=${rocket.isp}s · ${(rocket.fuelFrac*100).toFixed(0)}% fuel · Δv = ${rocket.budget} km/s`
+      : "";
+  } else {
+    budgetDisplay.textContent = "∞";
+    budgetDisplay.className = "fbudget ok";
+    fuelEquation.textContent = "";
+  }
+  updateBoostDisplay();
+  updateReachability();
+}
+
+function updateReachability() {
+  const rocket = getCurrentRocket();
+  const budget = rocket.budget;
+  reachabilityEl.innerHTML = "";
+
+  for (const pName of Object.keys(DV_COSTS)) {
+    const costs = DV_COSTS[pName];
+    const pill = document.createElement("span");
+    pill.className = "reach-pill";
+
+    if (budget >= costs.direct) {
+      pill.classList.add("direct");
+      pill.innerHTML = `${pName} <span class="cost">${costs.direct}</span>`;
+      pill.title = `Direct: ${costs.direct} km/s — within budget`;
+    } else if (budget >= costs.assisted) {
+      pill.classList.add("assisted");
+      pill.innerHTML = `${pName} <span class="cost">${costs.assisted}★</span>`;
+      pill.title = `Direct: ${costs.direct} km/s (over budget!) · With assist ${costs.assistRoute}: ${costs.assisted} km/s ✓`;
+    } else {
+      pill.classList.add("unreachable");
+      pill.innerHTML = `${pName} <span class="cost">${costs.direct}</span>`;
+      pill.title = `Direct: ${costs.direct} km/s · Assisted: ${costs.assisted} km/s — both over budget`;
+    }
+    reachabilityEl.appendChild(pill);
+  }
+}
+
+rocketSel.onchange = updateRocketInfo;
+
+boostSlider.oninput = () => { updateBoostDisplay(); };
 angleSlider.oninput = () => { angleVal.textContent = angleSlider.value + "°"; };
 zoomSlider.oninput  = () => { zoomVal.textContent = (+zoomSlider.value).toFixed(1) + "x"; draw(progress); };
 speedSlider.oninput = () => {
@@ -378,7 +551,7 @@ function updateWindowInfo() {
   updateDateDisplay();
 }
 
-destSel.onchange = updateWindowInfo;
+destSel.onchange = () => { updateWindowInfo(); updateRocketInfo(); };
 
 // ── Window quality strip ───────────────────────────────────────────
 function drawWindowStrip(dest) {
@@ -683,11 +856,16 @@ function draw(prog) {
       distAU = (Math.sqrt(dx*dx + dy*dy) / AU).toFixed(2);
     }
 
+    const rocket = getCurrentRocket();
+    const launchDv = getBoostKms();
+    const hasBudget = rocket.budget < 100;
+    const hudH = hasBudget ? 96 : 72;
+
     const hudX = 14, hudY = 12;
     ctx.fillStyle = "rgba(0,0,0,0.55)";
-    roundRect(ctx, hudX, hudY, 195, 72, 6); ctx.fill();
+    roundRect(ctx, hudX, hudY, 195, hudH, 6); ctx.fill();
     ctx.strokeStyle = "rgba(255,255,255,0.08)"; ctx.lineWidth = 1;
-    roundRect(ctx, hudX, hudY, 195, 72, 6); ctx.stroke();
+    roundRect(ctx, hudX, hudY, 195, hudH, 6); ctx.stroke();
 
     ctx.textAlign = "left";
     ctx.font = "bold 9px 'IBM Plex Mono', monospace";
@@ -717,10 +895,66 @@ function draw(prog) {
     ctx.fillStyle = `rgb(${sr2},${sg2},40)`;
     roundRect(ctx, barX, barY, barW * speedFrac, barH, 3); ctx.fill();
 
+    // Fuel gauge
+    if (hasBudget) {
+      const fuelY = hudY + 76;
+      const fuelW = 170;
+      const usedFrac = Math.min(launchDv / rocket.budget, 1);
+      const remaining = Math.max(rocket.budget - launchDv, 0);
+
+      // Count assist Δv gained so far
+      let assistDv = 0;
+      if (result.assists) {
+        for (const a of result.assists) {
+          if (a.time <= (curPoint ? curPoint.t : 0)) assistDv += 2.5; // ~avg assist gain
+        }
+      }
+
+      ctx.fillStyle = "#888";
+      ctx.font = "bold 8px 'IBM Plex Mono', monospace";
+      ctx.textAlign = "left";
+      ctx.fillText("FUEL", hudX + 10, fuelY);
+      ctx.fillStyle = remaining > 0 ? "#aaa" : "#ff5533";
+      ctx.font = "8px 'IBM Plex Mono', monospace";
+      ctx.fillText(`${remaining.toFixed(1)} / ${rocket.budget.toFixed(1)} km/s left`, hudX + 42, fuelY);
+
+      // Fuel bar background
+      const fbX = hudX + 10, fbY = fuelY + 4, fbW = fuelW, fbH = 7;
+      ctx.fillStyle = "rgba(255,255,255,0.06)";
+      roundRect(ctx, fbX, fbY, fbW, fbH, 3); ctx.fill();
+
+      // Used portion (orange)
+      const usedW = fbW * usedFrac;
+      ctx.fillStyle = usedFrac > 0.9 ? "#ff4422" : "#ff8844";
+      if (usedW > 1) { roundRect(ctx, fbX, fbY, Math.min(usedW, fbW), fbH, 3); ctx.fill(); }
+
+      // Remaining portion (green, drawn from right edge of used)
+      if (usedFrac < 1) {
+        ctx.fillStyle = "#00cc66";
+        roundRect(ctx, fbX + usedW, fbY, fbW - usedW, fbH, 3); ctx.fill();
+      }
+
+      // "LAUNCH" label on used portion
+      if (usedW > 35) {
+        ctx.fillStyle = "rgba(0,0,0,0.6)";
+        ctx.font = "bold 6px 'IBM Plex Mono', monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("LAUNCH", fbX + usedW / 2, fbY + 5.5);
+      }
+
+      // If assists gained Δv, show bonus
+      if (assistDv > 0) {
+        ctx.textAlign = "left";
+        ctx.fillStyle = "#ffdd44";
+        ctx.font = "bold 7px 'IBM Plex Mono', monospace";
+        ctx.fillText(`+${assistDv.toFixed(1)} km/s FREE from assists`, fbX, fbY + fbH + 9);
+      }
+    }
+
     // Capture verdict panel (shows after arrival)
     if (result.captureInfo && progress >= 1) {
       const ci = result.captureInfo;
-      const cvX = hudX, cvY = hudY + 82;
+      const cvX = hudX, cvY = hudY + hudH + 10;
       const cvW = 210, cvH = 68;
 
       // Background
@@ -896,6 +1130,7 @@ function showStatus() {
 launchBtn.addEventListener("click", launch);
 resize();
 updateWindowInfo();
+updateRocketInfo();
 </script>
 </body>
 </html>
