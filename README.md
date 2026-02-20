@@ -4,7 +4,7 @@ An interactive, browser-based simulator that visualizes how spacecraft use plane
 
 **[▶ Try it live here](https://stenjac.github.io/gravity-assist-simulator/)** — or just download `index.html` and double-click it.
 
-<img width="1372" height="631" alt="Screenshot 2026-02-20 at 9 25 40 AM" src="https://github.com/user-attachments/assets/89f60a64-a840-4dbd-b1a9-dc8941f4277a" />
+<img width="1263" height="659" alt="Screenshot 2026-02-20 at 2 27 30 PM" src="https://github.com/user-attachments/assets/c9989820-7696-486a-8210-86ac8d049dd8" />
 
 ---
 
