@@ -285,7 +285,7 @@ This is the "aha moment" scenario:
 - **Orbits**: Circular, coplanar (real orbits are slightly elliptical and tilted)
 - **Hohmann transfers**: Phase angles and transfer times calculated from classical orbital mechanics formulas
 
-### What's Simplified
+## What's Simplified
 This is an intuition-builder, not a mission planner. Key simplifications:
 
 - All orbits are circular (real orbits are elliptical — Mars's eccentricity of 0.093 matters for real missions)
@@ -294,6 +294,8 @@ This is an intuition-builder, not a mission planner. Key simplifications:
 - No atmospheric drag, radiation pressure, or relativistic effects
 - No multi-body trajectory optimization (real missions use patched conics and numerical optimization)
 - Launch is instantaneous (no atmospheric ascent phase)
+
+**Why you can't chain multiple gravity assists:** Real missions like Cassini (Venus → Venus → Earth → Jupiter → Saturn) or MESSENGER (Earth → Venus → Venus → Mercury → Mercury → Mercury) perform small mid-course engine burns between flybys — steering corrections that adjust the trajectory after each gravity assist to line up the next one. This simulator gives you a single burn at launch and nothing after that. You're a thrown baseball from that point on. You *can* get a single gravity assist on the way to your destination (e.g., a Jupiter assist en route to Saturn if Jupiter happens to be in the right spot), but complex multi-flyby chains are out of reach without a "maneuver node" system that lets you fire the engine mid-flight. Real mission planning software like NASA's GMAT provides exactly this capability.
 
 ### Rendering
 - HTML5 Canvas 2D with `requestAnimationFrame`
