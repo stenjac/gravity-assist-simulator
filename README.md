@@ -4,7 +4,7 @@ An interactive, browser-based simulator that visualizes how spacecraft use plane
 
 **[▶ Try it live here](https://stenjac.github.io/gravity-assist-simulator/)** — or just download `index.html` and double-click it.
 
-<img width="1341" height="615" alt="Screenshot 2026-02-17 at 8 45 21 PM" src="https://github.com/user-attachments/assets/866b4dcb-a67d-41e4-aa93-89d4813788d2" />
+<img width="1372" height="631" alt="Screenshot 2026-02-20 at 9 25 40 AM" src="https://github.com/user-attachments/assets/89f60a64-a840-4dbd-b1a9-dc8941f4277a" />
 
 ---
 
@@ -146,7 +146,7 @@ The Tsiolkovsky rocket equation says: `Δv = exhaust_velocity × ln(full_mass / 
 
 The launch angle controls *which direction* the rocket fires relative to Earth's orbital motion around the Sun. It's measured in degrees from Earth's velocity vector (the direction Earth is currently traveling).
 
-![Launch Angle Diagram](launch-angle-diagram.svg)
+<img width="1188" height="669" alt="Screenshot 2026-02-20 at 9 29 41 AM" src="https://github.com/user-attachments/assets/cdd2b8ed-1655-45af-a2f4-62a73bfa7f93" />
 
 Think of Earth as a car driving in a circle around the Sun. The launch angle determines which direction you throw a ball out the window:
 
