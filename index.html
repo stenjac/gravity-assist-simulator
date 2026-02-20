@@ -333,8 +333,10 @@ function simulate(boostPct, angleDeg, destName, launchTimeYears) {
       const pp = planetPos(p, time);
       const dx = pp.x - x, dy = pp.y - y;
       const d = Math.sqrt(dx*dx + dy*dy);
-      // Arrival zone for destination is much wider (like entering its sphere of influence)
-      const arrivalR = p.name === dest?.name ? Math.max(p.rad * 5, 18) : p.rad * 1.2;
+      // Assist detection threshold (how close = "significant encounter")
+      const assistThresh = Math.max(p.r * AU * 0.06, 15);
+      // Arrival zone for destination must be at LEAST as wide as assist threshold
+      const arrivalR = p.name === dest?.name ? Math.max(p.rad * 5, 18, assistThresh) : p.rad * 1.2;
       if (d < arrivalR) {
         if (p.name === dest?.name && (time - t0) > 0.01) {
           stopReason = "ARRIVED";
@@ -360,9 +362,9 @@ function simulate(boostPct, angleDeg, destName, launchTimeYears) {
         ax += p.gm * dx / (d*d*d);
         ay += p.gm * dy / (d*d*d);
       }
-      const thresh = Math.max(p.r * AU * 0.06, 15);
-      if (d < thresh && p.name !== "Earth" && (time - t0) > 0.02) {
-        if (!assists.find(a => a.planet === p.name && Math.abs(time - a.time) < 0.3))
+      // Log gravity assists (non-destination planets only — destination triggers arrival, not assist)
+      if (d < assistThresh && p.name !== "Earth" && p.name !== dest?.name && (time - t0) > 0.02) {
+        if (!assists.find(a => a.planet === p.name && Math.abs((time - t0) - a.time) < 0.5))
           assists.push({ planet: p.name, time: time - t0, x: pp.x, y: pp.y });
       }
     }
@@ -902,11 +904,14 @@ function draw(prog) {
       const usedFrac = Math.min(launchDv / rocket.budget, 1);
       const remaining = Math.max(rocket.budget - launchDv, 0);
 
-      // Count assist Δv gained so far
+      // Count assist Δv gained so far (rough estimates per planet)
+      const ASSIST_DV_EST = { Mercury: 1.5, Venus: 4.0, Mars: 2.0, Jupiter: 10.0, Saturn: 6.0, Uranus: 4.0, Neptune: 4.0 };
       let assistDv = 0;
       if (result.assists) {
         for (const a of result.assists) {
-          if (a.time <= (curPoint ? curPoint.t : 0)) assistDv += 2.5; // ~avg assist gain
+          if (a.time <= (curPoint ? curPoint.t : 0)) {
+            assistDv += ASSIST_DV_EST[a.planet] || 3.0;
+          }
         }
       }
 
