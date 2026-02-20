@@ -146,7 +146,7 @@ The Tsiolkovsky rocket equation says: `Δv = exhaust_velocity × ln(full_mass / 
 
 The launch angle controls *which direction* the rocket fires relative to Earth's orbital motion around the Sun. It's measured in degrees from Earth's velocity vector (the direction Earth is currently traveling).
 
-<img width="1188" height="669" alt="Screenshot 2026-02-20 at 9 29 41 AM" src="https://github.com/user-attachments/assets/cdd2b8ed-1655-45af-a2f4-62a73bfa7f93" />
+<img width="1188" height="669" alt="Screenshot 2026-02-20 at 9 29 41 AM" src="https://github.com/user-attachments/assets/74042718-aaf6-46dd-99f3-6e33efce1344" />
 
 Think of Earth as a car driving in a circle around the Sun. The launch angle determines which direction you throw a ball out the window:
 
