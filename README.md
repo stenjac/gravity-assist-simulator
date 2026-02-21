@@ -93,7 +93,7 @@ Imagine pointing a garden hose at a target 100 feet away. Tilting the nozzle by 
 ### Controls
 - **Destination** — any planet from Mercury to Neptune
 - **Rocket Class** — determines your Δv budget (see below)
-- **Boost (Δv)** — departure velocity added at launch, auto-capped to your rocket's budget
+- **Boost (Δv)** — departure velocity added at launch, auto-capped to your rocket's budget (note that the boost is expressed as a % of the Earth's orbital speed, which is ~29.78 km/s)
 - **Launch Angle** — direction of the boost relative to Earth's orbital motion (see below)
 - **Zoom** — 0.08x to 4x magnification
 - **Animation Speed** — 0.01x (slow-motion) to 5x, adjustable mid-flight
