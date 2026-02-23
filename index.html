@@ -433,6 +433,7 @@ function simulate(boostPct, angleDeg, destName, launchTimeYears, maneuverNodes) 
   const trail = [];
   const assists = [];
   const burns = []; // records of executed maneuver burns
+  const activeEncounters = {}; // track planets currently in encounter zone
   let time = t0, stopReason = "MAX_TIME";
   let captureInfo = null;
 
@@ -505,10 +506,44 @@ function simulate(boostPct, angleDeg, destName, launchTimeYears, maneuverNodes) 
         ax += p.gm * dx / (d*d*d);
         ay += p.gm * dy / (d*d*d);
       }
-      // Log gravity assists (non-destination planets only — destination triggers arrival, not assist)
-      if (d < assistThresh && p.name !== "Earth" && p.name !== dest?.name && (time - t0) > 0.02) {
-        if (!assists.find(a => a.planet === p.name && Math.abs((time - t0) - a.time) < 0.5))
-          assists.push({ planet: p.name, time: time - t0, x: pp.x, y: pp.y });
+      // Log gravity assists — track entry/exit of encounter zone to measure actual Δv
+      if (p.name !== "Earth" && p.name !== dest?.name && (time - t0) > 0.02) {
+        const inZone = d < assistThresh;
+        if (inZone && !activeEncounters[p.name]) {
+          // Entering encounter zone — record pre-encounter speed
+          const spdBefore = Math.sqrt(vx*vx + vy*vy);
+          activeEncounters[p.name] = {
+            spdBefore,
+            closestDist: d,
+            closestPos: { x: pp.x, y: pp.y },
+            entryTime: time - t0,
+          };
+        } else if (inZone && activeEncounters[p.name]) {
+          // Still in zone — track closest approach
+          const enc = activeEncounters[p.name];
+          if (d < enc.closestDist) {
+            enc.closestDist = d;
+            enc.closestPos = { x: pp.x, y: pp.y };
+          }
+        } else if (!inZone && activeEncounters[p.name]) {
+          // Exiting encounter zone — measure post-encounter speed
+          const enc = activeEncounters[p.name];
+          const spdAfter = Math.sqrt(vx*vx + vy*vy);
+          const dvSim = spdAfter - enc.spdBefore; // positive = speed gained
+          const dvKms = (dvSim / EARTH_V) * REAL_EARTH_V_KMS;
+          // Only log if not a duplicate
+          if (!assists.find(a => a.planet === p.name && Math.abs((time - t0) - a.time) < 0.5)) {
+            assists.push({
+              planet: p.name,
+              time: enc.entryTime + (time - t0 - enc.entryTime) / 2, // midpoint
+              x: enc.closestPos.x, y: enc.closestPos.y,
+              dvKms,
+              spdBeforeKms: (enc.spdBefore / EARTH_V) * REAL_EARTH_V_KMS,
+              spdAfterKms: (spdAfter / EARTH_V) * REAL_EARTH_V_KMS,
+            });
+          }
+          delete activeEncounters[p.name];
+        }
       }
     }
     if (stopReason === "ARRIVED") break;
@@ -1214,7 +1249,11 @@ function draw(prog) {
       ctx.beginPath(); ctx.arc(ax2, ay2, 12, 0, PI2); ctx.stroke();
       ctx.fillStyle = "rgba(255,220,40,0.8)";
       ctx.font = "bold 8px monospace"; ctx.textAlign = "center";
-      ctx.fillText("⚡ ASSIST", ax2, ay2 - 16);
+      ctx.fillText("⚡ " + a.planet, ax2, ay2 - 22);
+      const dvSign = a.dvKms >= 0 ? "+" : "";
+      ctx.font = "7px monospace";
+      ctx.fillStyle = a.dvKms >= 0 ? "rgba(0,238,119,0.8)" : "rgba(255,100,50,0.8)";
+      ctx.fillText(dvSign + a.dvKms.toFixed(1) + " km/s", ax2, ay2 - 13);
     }
   }
 
@@ -1321,13 +1360,12 @@ function draw(prog) {
       const remaining = Math.max(rocket.budget - totalUsed, 0);
       const totalFrac = Math.min(totalUsed / rocket.budget, 1);
 
-      // Count assist Δv gained so far (rough estimates per planet)
-      const ASSIST_DV_EST = { Mercury: 1.5, Venus: 4.0, Mars: 2.0, Jupiter: 10.0, Saturn: 6.0, Uranus: 4.0, Neptune: 4.0 };
+      // Count actual measured assist Δv so far
       let assistDv = 0;
       if (result.assists) {
         for (const a of result.assists) {
           if (a.time <= (curPoint ? curPoint.t : 0)) {
-            assistDv += ASSIST_DV_EST[a.planet] || 3.0;
+            assistDv += Math.max(0, a.dvKms || 0); // only count speed gains
           }
         }
       }
@@ -1389,7 +1427,7 @@ function draw(prog) {
         ctx.textAlign = "left";
         ctx.fillStyle = "#ffdd44";
         ctx.font = "bold 7px 'IBM Plex Mono', monospace";
-        ctx.fillText(`+${assistDv.toFixed(1)} km/s FREE from assists`, fbX, fbY + fbH + 9);
+        ctx.fillText(`+${assistDv.toFixed(1)} km/s gained from assists`, fbX, fbY + fbH + 9);
       }
     }
 
@@ -1497,7 +1535,7 @@ function drawVelocityChart(prog) {
   vc.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
 
   // Chart margins
-  const ml = 52, mr = 14, mt = 10, mb = 22;
+  const ml = 52, mr = 14, mt = 20, mb = 22;
   const cw = W - ml - mr, ch = H - mt - mb;
 
   // Background
@@ -1576,7 +1614,11 @@ function drawVelocityChart(prog) {
       vc.fillStyle = "rgba(255,220,40,0.7)";
       vc.font = "bold 7px 'IBM Plex Mono', monospace";
       vc.textAlign = "center"; vc.textBaseline = "bottom";
-      vc.fillText("⚡" + a.planet, x, mt - 1);
+      const dvSign = a.dvKms >= 0 ? "+" : "";
+      const dvColor = a.dvKms >= 0 ? "rgba(0,238,119,0.8)" : "rgba(255,100,50,0.8)";
+      vc.fillText("⚡" + a.planet, x, mt - 8);
+      vc.fillStyle = dvColor;
+      vc.fillText(dvSign + a.dvKms.toFixed(1) + " km/s", x, mt - 1);
     }
   }
 
@@ -1714,7 +1756,10 @@ function showStatus() {
   const days = (result.time * 365.25).toFixed(0);
   const a = result.assists;
   const aStr = a.length > 0
-    ? ` · ${a.length} assist${a.length !== 1 ? "s" : ""}: ${a.map(x => x.planet).join(", ")}` : "";
+    ? ` · ${a.length} assist${a.length !== 1 ? "s" : ""}: ${a.map(x => {
+        const sign = x.dvKms >= 0 ? "+" : "";
+        return x.planet + " (" + sign + x.dvKms.toFixed(1) + ")";
+      }).join(", ")}` : "";
   const bStr = result.burns && result.burns.length > 0
     ? ` · ${result.burns.length} burn${result.burns.length !== 1 ? "s" : ""} (${result.burns.reduce((s, b) => s + b.dvKms, 0).toFixed(1)} km/s)` : "";
 
