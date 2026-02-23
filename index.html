@@ -14,13 +14,13 @@
     overflow: hidden; user-select: none;
   }
   #controls {
-    padding: 10px 16px 12px;
+    padding: 6px 14px 8px;
     background: rgba(12,12,22,0.98);
     border-bottom: 1px solid rgba(255,255,255,0.06);
     flex-shrink: 0;
   }
   #title-row {
-    display: flex; align-items: center; margin-bottom: 8px;
+    display: flex; align-items: center; margin-bottom: 4px;
     flex-wrap: wrap; gap: 8px;
   }
   .logo { color: #ff8844; font-size: 16px; }
@@ -33,7 +33,19 @@
   #status.escaped { color: #bb88ff; }
   #status.suncrash { color: #ffcc22; }
   #status .detail { color: #666; font-weight: 400; margin-left: 6px; }
-  #input-row { display: flex; gap: 10px; margin-bottom: 8px; align-items: end; flex-wrap: wrap; }
+
+  #controls-toggle {
+    margin-left: 8px;
+    background: none; border: 1px solid rgba(255,255,255,0.08);
+    color: #666; font-size: 8px; font-family: inherit;
+    padding: 2px 10px; border-radius: 3px; cursor: pointer;
+    letter-spacing: 0.5px;
+  }
+  #controls-toggle:hover { color: #aaa; border-color: rgba(255,255,255,0.15); }
+  #controls.collapsed #controls-body { display: none; }
+  #controls.collapsed { padding-bottom: 6px; }
+
+  #input-row { display: flex; gap: 10px; margin-bottom: 4px; align-items: end; flex-wrap: wrap; }
   #input-row select {
     background: #111120; border: 1px solid rgba(255,255,255,0.08);
     color: #ddd; padding: 5px 8px; border-radius: 4px;
@@ -50,13 +62,13 @@
   #launch-btn:disabled { background: rgba(255,136,68,0.12); color: #664422; cursor: not-allowed; }
   #sliders { display: flex; gap: 14px; flex-wrap: wrap; }
   .sg { flex: 1 1 100px; min-width: 80px; }
-  .sg label { font-size: 9px; color: #888; letter-spacing: 0.4px; display: block; margin-bottom: 2px; }
+  .sg label { font-size: 9px; color: #888; letter-spacing: 0.4px; display: block; margin-bottom: 0px; }
   .sg label .v { color: #ccc; font-weight: 600; }
   .sg input[type=range] { width: 100%; cursor: pointer; }
 
   /* Launch window section */
   #window-section {
-    margin-top: 8px; padding-top: 8px;
+    margin-top: 4px; padding-top: 4px;
     border-top: 1px solid rgba(255,255,255,0.04);
   }
   #window-header {
@@ -81,25 +93,66 @@
   #tip { margin-top: 6px; font-size: 9px; color: #554433; line-height: 1.5; display: none; }
   #canvas-wrap { flex: 1; position: relative; min-height: 0; }
   #canvas-wrap canvas { width: 100%; height: 100%; display: block; }
-  #placeholder {
-    position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
-    text-align: center; color: #444; font-size: 12px; letter-spacing: 0.5px;
-    pointer-events: none; line-height: 1.8;
+
+  /* Floating flight controls overlay */
+  #flight-controls {
+    position: absolute; bottom: 10px; right: 10px;
+    background: rgba(6,6,14,0.75); backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 6px; padding: 6px 10px;
+    display: flex; flex-direction: column; gap: 2px;
+    z-index: 10; min-width: 140px;
   }
-  #placeholder .icon { font-size: 26px; margin-bottom: 8px; opacity: 0.25; }
-  #placeholder .sub { font-size: 9px; color: #333; max-width: 340px; margin: 8px auto 0; line-height: 1.6; }
+  .fc-row { display: flex; flex-direction: column; }
+  .fc-row label {
+    font-size: 8px; color: #666; letter-spacing: 0.3px;
+    display: flex; justify-content: space-between;
+  }
+  .fc-row label .v { color: #aaa; font-weight: 600; }
+  .fc-row input[type=range] { width: 100%; cursor: pointer; margin: 0; height: 14px; }
+  .fc-btn {
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+    color: #aaa; font-size: 9px; font-family: inherit; font-weight: 700;
+    padding: 4px 0; border-radius: 4px; cursor: pointer;
+    letter-spacing: 1px; width: 100%; text-align: center;
+  }
+  .fc-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+  .fc-btn.paused { background: rgba(0,238,119,0.12); border-color: rgba(0,238,119,0.25); color: #00ee77; }
+  #vel-canvas { cursor: pointer; }
   #boost-slider { accent-color: #ff8844; }
   #angle-slider { accent-color: #5aadff; }
   #zoom-slider  { accent-color: #7ecbc4; }
   #speed-slider { accent-color: #bb88ff; }
 
+  /* Velocity chart */
+  #vel-chart-wrap {
+    flex-shrink: 0; background: rgba(6,6,14,0.98);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    display: none; /* hidden until first sim */
+  }
+  #vel-chart-wrap.visible { display: block; }
+  #vel-chart-wrap.collapsed #vel-canvas { display: none; }
+  #vel-chart-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 4px 16px; cursor: pointer;
+  }
+  .vcl { font-size: 9px; color: #888; letter-spacing: 0.5px; font-weight: 700; }
+  .vci { font-size: 9px; color: #555; flex: 1; }
+  #vel-chart-toggle {
+    background: none; border: 1px solid rgba(255,255,255,0.08);
+    color: #666; font-size: 8px; font-family: inherit;
+    padding: 2px 8px; border-radius: 3px; cursor: pointer;
+  }
+  #vel-chart-toggle:hover { color: #aaa; border-color: rgba(255,255,255,0.15); }
+  #vel-canvas { width: 100%; height: 100px; display: block; }
+
   /* Fuel & Reachability */
   #fuel-section {
-    margin-top: 8px; padding-top: 8px;
+    margin-top: 4px; padding-top: 4px;
     border-top: 1px solid rgba(255,255,255,0.04);
   }
   #fuel-header {
-    display: flex; align-items: center; gap: 12px; margin-bottom: 6px; flex-wrap: wrap;
+    display: flex; align-items: center; gap: 12px; margin-bottom: 4px; flex-wrap: wrap;
   }
   #fuel-header .flabel { font-size: 9px; color: #888; letter-spacing: 0.5px; }
   #fuel-header .fbudget { font-size: 10px; font-weight: 700; }
@@ -122,6 +175,47 @@
     color: #ddd; padding: 5px 8px; border-radius: 4px;
     font-size: 11px; font-family: inherit;
   }
+
+  /* Maneuver nodes */
+  #nodes-section {
+    margin-top: 4px; padding-top: 4px;
+    border-top: 1px solid rgba(255,255,255,0.04);
+  }
+  #nodes-header {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 4px;
+  }
+  #nodes-header .nlabel {
+    font-size: 9px; color: #888; letter-spacing: 0.5px; font-weight: 700;
+  }
+  #add-node-btn {
+    background: rgba(187,136,255,0.12); border: 1px solid rgba(187,136,255,0.2);
+    color: #bb88ff; font-size: 9px; padding: 3px 10px; border-radius: 4px;
+    cursor: pointer; font-family: inherit; font-weight: 600;
+  }
+  #add-node-btn:hover { background: rgba(187,136,255,0.22); }
+  #node-total-dv { font-size: 9px; color: #888; }
+  #node-list { display: flex; flex-direction: column; gap: 4px; }
+  .node-row {
+    display: flex; align-items: center; gap: 6px; padding: 4px 8px;
+    background: rgba(187,136,255,0.04); border: 1px solid rgba(187,136,255,0.08);
+    border-radius: 4px; flex-wrap: wrap;
+  }
+  .node-row .nid {
+    font-size: 9px; font-weight: 700; color: #bb88ff; width: 20px; text-align: center;
+  }
+  .node-row label { font-size: 8px; color: #666; letter-spacing: 0.3px; }
+  .node-row input {
+    background: #111120; border: 1px solid rgba(255,255,255,0.08);
+    color: #ddd; padding: 3px 5px; border-radius: 3px;
+    font-size: 10px; font-family: inherit; width: 60px;
+  }
+  .node-row input:focus { border-color: rgba(187,136,255,0.3); outline: none; }
+  .node-remove {
+    background: none; border: none; color: #553333; font-size: 12px;
+    cursor: pointer; padding: 2px 4px; line-height: 1;
+  }
+  .node-remove:hover { color: #ff5533; }
+  .node-row .ndv-warn { color: #ff5533; font-size: 8px; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -131,7 +225,9 @@
     <span class="logo">◈</span>
     <span class="name">GRAVITY ASSIST SIMULATOR</span>
     <span id="status"></span>
+    <button id="controls-toggle" title="Toggle controls panel">▴ CONTROLS</button>
   </div>
+  <div id="controls-body">
   <div id="input-row">
     <div>
       <label style="font-size:9px;color:#888;display:block;margin-bottom:2px">DESTINATION</label>
@@ -151,14 +247,6 @@
     <div class="sg">
       <label>LAUNCH ANGLE: <span class="v" id="angle-val">0°</span></label>
       <input type="range" id="angle-slider" min="-180" max="180" step="1" value="0">
-    </div>
-    <div class="sg">
-      <label>ZOOM: <span class="v" id="zoom-val">1.0x</span></label>
-      <input type="range" id="zoom-slider" min="0.08" max="4" step="0.02" value="1">
-    </div>
-    <div class="sg">
-      <label>ANIM SPEED: <span class="v" id="speed-val">1.0x</span></label>
-      <input type="range" id="speed-slider" min="0.01" max="5" step="0.01" value="1">
     </div>
   </div>
 
@@ -193,17 +281,41 @@
     <div id="reachability"></div>
   </div>
 
+  <!-- Maneuver nodes -->
+  <div id="nodes-section">
+    <div id="nodes-header">
+      <span class="nlabel">MANEUVER NODES</span>
+      <button id="add-node-btn">+ ADD BURN</button>
+      <span id="node-total-dv"></span>
+    </div>
+    <div id="node-list"></div>
+  </div>
+  </div><!-- end controls-body -->
+
   <div id="tip"></div>
+</div>
+
+<div id="vel-chart-wrap">
+  <div id="vel-chart-header">
+    <span class="vcl">▾ VELOCITY HISTORY</span>
+    <span id="vel-chart-info" class="vci"></span>
+    <span class="vci" style="color:#444">drag to scrub</span>
+    <button id="vel-chart-toggle">▴ HIDE</button>
+  </div>
+  <canvas id="vel-canvas"></canvas>
 </div>
 
 <div id="canvas-wrap">
   <canvas id="canvas"></canvas>
-  <div id="placeholder">
-    <div style="color:#555">◈ Choose a destination, find a launch window, and hit LAUNCH</div>
-    <div class="sub">
-      The green strip above shows optimal launch dates. Drag the Launch Date slider to a green zone,
-      then hit Launch. The phase angle between Earth and the target must be just right —
-      like timing a pass to a teammate running across a field.
+  <div id="flight-controls">
+    <button id="pause-btn" class="fc-btn" title="Pause / Resume simulation">⏸ STOP</button>
+    <div class="fc-row">
+      <label>ZOOM <span class="v" id="zoom-val">1.0x</span></label>
+      <input type="range" id="zoom-slider" min="0.08" max="4" step="0.02" value="1">
+    </div>
+    <div class="fc-row">
+      <label>SPEED <span class="v" id="speed-val">0.1x</span></label>
+      <input type="range" id="speed-slider" min="0.0001" max="0.1" step="0.0001" value="0.1">
     </div>
   </div>
 </div>
@@ -302,7 +414,7 @@ function phaseAngle(destPlanet, t) {
 }
 
 // ── Simulation ─────────────────────────────────────────────────────
-function simulate(boostPct, angleDeg, destName, launchTimeYears) {
+function simulate(boostPct, angleDeg, destName, launchTimeYears, maneuverNodes) {
   const earth = PLANETS[2];
   const t0 = launchTimeYears;
   const ep = planetPos(earth, t0);
@@ -320,14 +432,45 @@ function simulate(boostPct, angleDeg, destName, launchTimeYears) {
   const dt = 0.00008;
   const trail = [];
   const assists = [];
+  const burns = []; // records of executed maneuver burns
   let time = t0, stopReason = "MAX_TIME";
   let captureInfo = null;
+
+  // Sort nodes by day and convert to simulation units
+  const nodes = (maneuverNodes || [])
+    .map(n => ({
+      timeYears: n.day / 365.25,       // relative to launch
+      dvSim: (n.dvKms / REAL_EARTH_V_KMS) * EARTH_V,  // convert km/s to sim units
+      angleDeg: n.angleDeg,
+      fired: false
+    }))
+    .sort((a, b) => a.timeYears - b.timeYears);
 
   for (let i = 0; i < MAX_STEPS; i++) {
     const ds = Math.sqrt(x*x + y*y);
     if (ds < 8) { stopReason = "SUN_CRASH"; break; }
     let ax = -GM_SUN * x / (ds*ds*ds);
     let ay = -GM_SUN * y / (ds*ds*ds);
+
+    // Check for maneuver node burns
+    const flightTime = time - t0;
+    for (const node of nodes) {
+      if (!node.fired && flightTime >= node.timeYears) {
+        // Apply the burn — angle is relative to current velocity direction
+        const curAngle = Math.atan2(vy, vx);
+        const burnAngle = curAngle + (node.angleDeg * Math.PI / 180);
+        vx += node.dvSim * Math.cos(burnAngle);
+        vy += node.dvSim * Math.sin(burnAngle);
+        node.fired = true;
+        burns.push({
+          time: flightTime,
+          day: Math.round(flightTime * 365.25),
+          x, y,
+          dvKms: (node.dvSim / EARTH_V) * REAL_EARTH_V_KMS,
+          angleDeg: node.angleDeg,
+        });
+      }
+    }
 
     for (const p of PLANETS) {
       const pp = planetPos(p, time);
@@ -380,19 +523,145 @@ function simulate(boostPct, angleDeg, destName, launchTimeYears) {
     }
     if (Math.sqrt(x*x + y*y) > BOUNDARY_AU * AU) { stopReason = "ESCAPED"; break; }
   }
-  return { trail, time: time - t0, stopReason, assists, t0, captureInfo };
+  return { trail, time: time - t0, stopReason, assists, burns, t0, captureInfo };
 }
 
 // ── DOM ────────────────────────────────────────────────────────────
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 const stripCanvas = document.getElementById("strip-canvas");
+
+// Controls panel collapse/expand
+const controlsEl = document.getElementById("controls");
+const controlsToggle = document.getElementById("controls-toggle");
+
+function collapseControls() {
+  controlsEl.classList.add("collapsed");
+  controlsToggle.textContent = "▾ CONTROLS";
+  setTimeout(resize, 10); // reclaim canvas space
+}
+function expandControls() {
+  controlsEl.classList.remove("collapsed");
+  controlsToggle.textContent = "▴ CONTROLS";
+  setTimeout(resize, 10);
+}
+controlsToggle.addEventListener("click", () => {
+  if (controlsEl.classList.contains("collapsed")) expandControls();
+  else collapseControls();
+});
+
+// Velocity chart
+const velWrap = document.getElementById("vel-chart-wrap");
+const velCanvas = document.getElementById("vel-canvas");
+const velCtx = velCanvas.getContext("2d");
+const velInfo = document.getElementById("vel-chart-info");
+const velToggle = document.getElementById("vel-chart-toggle");
+
+velToggle.addEventListener("click", (e) => {
+  e.stopPropagation();
+  velWrap.classList.toggle("collapsed");
+  const hidden = velWrap.classList.contains("collapsed");
+  velToggle.textContent = hidden ? "▾ SHOW" : "▴ HIDE";
+  if (!hidden) resizeVelChart();
+});
+
+function resizeVelChart() {
+  const r = velCanvas.getBoundingClientRect();
+  velCanvas.width = r.width * devicePixelRatio;
+  velCanvas.height = r.height * devicePixelRatio;
+  velCtx.scale(devicePixelRatio, devicePixelRatio);
+}
+
+// ── Pause / Resume ────────────────────────────────────────────────
+const pauseBtn = document.getElementById("pause-btn");
+let storedBaseFrames = 600;
+
+function pauseSim() {
+  if (!running || paused) return;
+  paused = true;
+  if (animId) { cancelAnimationFrame(animId); animId = null; }
+  pauseBtn.textContent = "▶ RESUME";
+  pauseBtn.classList.add("paused");
+  launchBtn.disabled = false;
+  launchBtn.textContent = "▶ LAUNCH";
+}
+
+function resumeSim() {
+  if (!running || !paused) return;
+  paused = false;
+  pauseBtn.textContent = "⏸ STOP";
+  pauseBtn.classList.remove("paused");
+  launchBtn.disabled = true;
+  launchBtn.textContent = "⟳ RUNNING...";
+
+  let lastTime = performance.now();
+  function tick(now) {
+    if (paused) return;
+    const animSpeed = +speedSlider.value;
+    const elapsed = (now - lastTime) / 1000;
+    lastTime = now;
+    const increment = (animSpeed * elapsed * 60) / storedBaseFrames;
+    progress = Math.min(progress + increment, 1);
+    draw(progress);
+    if (progress < 1) {
+      animId = requestAnimationFrame(tick);
+    } else {
+      running = false; paused = false;
+      launchBtn.disabled = false;
+      launchBtn.textContent = "▶ LAUNCH";
+      pauseBtn.textContent = "⏸ STOP";
+      pauseBtn.classList.remove("paused");
+      showStatus();
+    }
+  }
+  animId = requestAnimationFrame(tick);
+}
+
+pauseBtn.addEventListener("click", () => {
+  if (!running) return;
+  if (paused) resumeSim(); else pauseSim();
+});
+
+// ── Velocity chart scrubber (click & drag to seek) ────────────────
+function velChartSeek(e) {
+  if (!result || result.trail.length < 2) return;
+  const rect = velCanvas.getBoundingClientRect();
+  const ml = 52, mr = 14;
+  const cw = rect.width - ml - mr;
+  const x = e.clientX - rect.left - ml;
+  const frac = Math.max(0, Math.min(1, x / cw));
+  progress = frac;
+  // Pause if still running
+  if (running && !paused) pauseSim();
+  draw(progress);
+  if (progress >= 1) showStatus();
+}
+
+let velDragging = false;
+velCanvas.addEventListener("mousedown", (e) => {
+  velDragging = true;
+  velChartSeek(e);
+});
+window.addEventListener("mousemove", (e) => {
+  if (velDragging) velChartSeek(e);
+});
+window.addEventListener("mouseup", () => { velDragging = false; });
+
+// Touch support for scrubber
+velCanvas.addEventListener("touchstart", (e) => {
+  velDragging = true;
+  velChartSeek(e.touches[0]);
+  e.preventDefault();
+}, { passive: false });
+window.addEventListener("touchmove", (e) => {
+  if (velDragging) velChartSeek(e.touches[0]);
+});
+window.addEventListener("touchend", () => { velDragging = false; });
 const stripCtx = stripCanvas.getContext("2d");
 const destSel = document.getElementById("dest-select");
 const launchBtn = document.getElementById("launch-btn");
 const statusEl = document.getElementById("status");
 const tipEl = document.getElementById("tip");
-const placeholder = document.getElementById("placeholder");
 const boostSlider = document.getElementById("boost-slider");
 const angleSlider = document.getElementById("angle-slider");
 const zoomSlider  = document.getElementById("zoom-slider");
@@ -515,12 +784,114 @@ function updateReachability() {
 
 rocketSel.onchange = updateRocketInfo;
 
-boostSlider.oninput = () => { updateBoostDisplay(); };
+// ── Maneuver Nodes ─────────────────────────────────────────────────
+const maneuverNodes = [];
+const nodeListEl = document.getElementById("node-list");
+const nodeTotalDvEl = document.getElementById("node-total-dv");
+const addNodeBtn = document.getElementById("add-node-btn");
+
+function addNode(day, dvKms, angleDeg) {
+  maneuverNodes.push({ day: day || 200, dvKms: dvKms || 1.0, angleDeg: angleDeg || 0 });
+  renderNodes();
+}
+
+function removeNode(idx) {
+  maneuverNodes.splice(idx, 1);
+  renderNodes();
+}
+
+function renderNodes() {
+  nodeListEl.innerHTML = "";
+  const rocket = getCurrentRocket();
+  const launchDv = getBoostKms();
+  let totalNodeDv = 0;
+
+  maneuverNodes.forEach((node, idx) => {
+    totalNodeDv += node.dvKms;
+    const row = document.createElement("div");
+    row.className = "node-row";
+
+    const cumDv = launchDv + maneuverNodes.slice(0, idx + 1).reduce((s, n) => s + n.dvKms, 0);
+    const overBudget = rocket.budget < 100 && cumDv > rocket.budget;
+
+    row.innerHTML = `
+      <span class="nid">◆${idx + 1}</span>
+      <label>DAY</label><input type="number" class="n-day" value="${node.day}" min="1" max="50000" step="1">
+      <label>Δv (km/s)</label><input type="number" class="n-dv" value="${node.dvKms}" min="0.1" max="20" step="0.1">
+      <label>ANGLE</label><input type="number" class="n-angle" value="${node.angleDeg}" min="-180" max="180" step="1">
+      ${overBudget ? '<span class="ndv-warn">OVER BUDGET</span>' : ''}
+      <button class="node-remove" title="Remove this burn">✕</button>
+    `;
+
+    // Wire up inputs
+    row.querySelector(".n-day").addEventListener("input", (e) => {
+      node.day = Math.max(1, +e.target.value || 1);
+      updateNodeTotals();
+    });
+    row.querySelector(".n-dv").addEventListener("input", (e) => {
+      node.dvKms = Math.max(0.1, +e.target.value || 0.1);
+      updateNodeTotals();
+    });
+    row.querySelector(".n-angle").addEventListener("input", (e) => {
+      node.angleDeg = +e.target.value || 0;
+    });
+    row.querySelector(".node-remove").addEventListener("click", () => removeNode(idx));
+
+    nodeListEl.appendChild(row);
+  });
+
+  updateNodeTotals();
+}
+
+function updateNodeTotals() {
+  const rocket = getCurrentRocket();
+  const launchDv = getBoostKms();
+  const nodeDv = maneuverNodes.reduce((s, n) => s + n.dvKms, 0);
+  const totalDv = launchDv + nodeDv;
+  const hasBudget = rocket.budget < 100;
+
+  if (maneuverNodes.length === 0) {
+    nodeTotalDvEl.textContent = "";
+    return;
+  }
+
+  const overBudget = hasBudget && totalDv > rocket.budget;
+  const remaining = hasBudget ? Math.max(rocket.budget - totalDv, 0) : Infinity;
+
+  let txt = `Launch: ${launchDv.toFixed(1)} + Burns: ${nodeDv.toFixed(1)} = ${totalDv.toFixed(1)} km/s total`;
+  if (hasBudget) {
+    txt += overBudget
+      ? ` · OVER BUDGET by ${(totalDv - rocket.budget).toFixed(1)} km/s`
+      : ` · ${remaining.toFixed(1)} km/s remaining`;
+  }
+  nodeTotalDvEl.textContent = txt;
+  nodeTotalDvEl.style.color = overBudget ? "#ff5533" : "#888";
+
+  // Re-render to update over-budget warnings per row
+  // (avoid infinite loop — only re-render if needed)
+}
+
+function getTotalDv() {
+  return getBoostKms() + maneuverNodes.reduce((s, n) => s + n.dvKms, 0);
+}
+
+addNodeBtn.addEventListener("click", () => {
+  // Smart default: suggest a day based on current destination's transfer time
+  const dest = PLANETS.find(p => p.name === destSel.value);
+  let defaultDay = 200;
+  if (dest) {
+    const h = hohmannParams(dest);
+    defaultDay = Math.round(h.transferTimeDays * 0.4); // ~40% of transfer time
+  }
+  addNode(defaultDay, 1.0, 0);
+});
+
+boostSlider.oninput = () => { updateBoostDisplay(); updateNodeTotals(); };
 angleSlider.oninput = () => { angleVal.textContent = angleSlider.value + "°"; };
 zoomSlider.oninput  = () => { zoomVal.textContent = (+zoomSlider.value).toFixed(1) + "x"; draw(progress); };
 speedSlider.oninput = () => {
   const v = +speedSlider.value;
-  speedVal.textContent = v < 0.1 ? v.toFixed(2) + "x" : v.toFixed(1) + "x";
+  speedVal.textContent = v < 0.01 ? v.toFixed(3) + "x" : v < 0.1 ? v.toFixed(2) + "x" : v.toFixed(1) + "x";
 };
 
 function updateDateDisplay() {
@@ -623,12 +994,13 @@ function drawWindowStrip(dest) {
 }
 
 // ── State ──────────────────────────────────────────────────────────
-let result = null, animId = null, progress = 0, running = false;
+let result = null, animId = null, progress = 0, running = false, paused = false;
 
 function resize() {
   const wrap = canvas.parentElement;
   canvas.width = wrap.clientWidth;
   canvas.height = wrap.clientHeight;
+  if (velWrap.classList.contains("visible")) resizeVelChart();
   draw(progress);
   // Also resize strip
   const dest = PLANETS.find(p => p.name === destSel.value);
@@ -846,6 +1218,37 @@ function draw(prog) {
     }
   }
 
+  // Maneuver burn markers
+  if (result && result.burns) {
+    for (let bi = 0; bi < result.burns.length; bi++) {
+      const b = result.burns[bi];
+      if (b.time > (curPoint ? curPoint.t : 0)) continue;
+      const bx = cx + b.x * z, by = cy + b.y * z;
+      // Purple diamond
+      const dSize = 7;
+      ctx.fillStyle = "rgba(187,136,255,0.25)";
+      ctx.beginPath();
+      ctx.moveTo(bx, by - dSize - 6);
+      ctx.lineTo(bx + dSize + 6, by);
+      ctx.lineTo(bx, by + dSize + 6);
+      ctx.lineTo(bx - dSize - 6, by);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "rgba(187,136,255,0.6)"; ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(bx, by - dSize);
+      ctx.lineTo(bx + dSize, by);
+      ctx.lineTo(bx, by + dSize);
+      ctx.lineTo(bx - dSize, by);
+      ctx.closePath(); ctx.stroke();
+      ctx.fillStyle = "rgba(187,136,255,0.9)";
+      ctx.font = "bold 8px monospace"; ctx.textAlign = "center";
+      ctx.fillText(`◆ BURN ${bi + 1}`, bx, by - dSize - 8);
+      ctx.fillStyle = "rgba(187,136,255,0.65)";
+      ctx.font = "7px monospace";
+      ctx.fillText(`${b.dvKms.toFixed(1)} km/s · Day ${b.day}`, bx, by + dSize + 12);
+    }
+  }
+
   // HUD
   if (curPoint && result) {
     const speedKms = (curPoint.speed / EARTH_V) * REAL_EARTH_V_KMS;
@@ -901,8 +1304,22 @@ function draw(prog) {
     if (hasBudget) {
       const fuelY = hudY + 76;
       const fuelW = 170;
-      const usedFrac = Math.min(launchDv / rocket.budget, 1);
-      const remaining = Math.max(rocket.budget - launchDv, 0);
+
+      // Sum up executed burns so far
+      let burnsDv = 0;
+      const firedBurns = [];
+      if (result.burns) {
+        for (const b of result.burns) {
+          if (b.time <= (curPoint ? curPoint.t : 0)) {
+            burnsDv += b.dvKms;
+            firedBurns.push(b);
+          }
+        }
+      }
+
+      const totalUsed = launchDv + burnsDv;
+      const remaining = Math.max(rocket.budget - totalUsed, 0);
+      const totalFrac = Math.min(totalUsed / rocket.budget, 1);
 
       // Count assist Δv gained so far (rough estimates per planet)
       const ASSIST_DV_EST = { Mercury: 1.5, Venus: 4.0, Mars: 2.0, Jupiter: 10.0, Saturn: 6.0, Uranus: 4.0, Neptune: 4.0 };
@@ -928,23 +1345,43 @@ function draw(prog) {
       ctx.fillStyle = "rgba(255,255,255,0.06)";
       roundRect(ctx, fbX, fbY, fbW, fbH, 3); ctx.fill();
 
-      // Used portion (orange)
-      const usedW = fbW * usedFrac;
-      ctx.fillStyle = usedFrac > 0.9 ? "#ff4422" : "#ff8844";
-      if (usedW > 1) { roundRect(ctx, fbX, fbY, Math.min(usedW, fbW), fbH, 3); ctx.fill(); }
+      // Launch portion (orange)
+      const launchFrac = Math.min(launchDv / rocket.budget, 1);
+      const launchW = fbW * launchFrac;
+      ctx.fillStyle = "#ff8844";
+      if (launchW > 1) { roundRect(ctx, fbX, fbY, launchW, fbH, 3); ctx.fill(); }
 
-      // Remaining portion (green, drawn from right edge of used)
-      if (usedFrac < 1) {
-        ctx.fillStyle = "#00cc66";
-        roundRect(ctx, fbX + usedW, fbY, fbW - usedW, fbH, 3); ctx.fill();
+      // Burn portions (purple segments after launch)
+      let burnOffset = launchW;
+      for (const b of firedBurns) {
+        const bFrac = b.dvKms / rocket.budget;
+        const bW = Math.max(1, fbW * bFrac);
+        ctx.fillStyle = "#bb88ff";
+        if (burnOffset + bW <= fbW) {
+          ctx.fillRect(fbX + burnOffset, fbY, bW, fbH);
+        }
+        burnOffset += bW;
       }
 
-      // "LAUNCH" label on used portion
-      if (usedW > 35) {
+      // Remaining portion (green)
+      if (totalFrac < 1) {
+        ctx.fillStyle = "#00cc66";
+        const remStart = Math.min(burnOffset, fbW);
+        roundRect(ctx, fbX + remStart, fbY, fbW - remStart, fbH, 3); ctx.fill();
+      }
+
+      // Labels on segments
+      if (launchW > 30) {
         ctx.fillStyle = "rgba(0,0,0,0.6)";
         ctx.font = "bold 6px 'IBM Plex Mono', monospace";
         ctx.textAlign = "center";
-        ctx.fillText("LAUNCH", fbX + usedW / 2, fbY + 5.5);
+        ctx.fillText("LAUNCH", fbX + launchW / 2, fbY + 5.5);
+      }
+      if (burnsDv > 0 && (burnOffset - launchW) > 25) {
+        ctx.fillStyle = "rgba(0,0,0,0.6)";
+        ctx.font = "bold 5px 'IBM Plex Mono', monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("BURNS", fbX + launchW + (burnOffset - launchW) / 2, fbY + 5.5);
       }
 
       // If assists gained Δv, show bonus
@@ -1020,6 +1457,7 @@ function draw(prog) {
       }
     }
   }
+  drawVelocityChart(prog);
 }
 
 function roundRect(ctx, x, y, w, h, r) {
@@ -1043,6 +1481,189 @@ const STOP_LABELS = {
   MAX_TIME:  { text: "⏱ MAX SIM TIME REACHED", cls: "missed" },
 };
 
+function drawVelocityChart(prog) {
+  if (!result || velWrap.classList.contains("collapsed")) return;
+
+  const r = velCanvas.getBoundingClientRect();
+  const W = r.width, H = r.height;
+  if (W < 10 || H < 10) return;
+
+  // Ensure canvas is sized
+  if (velCanvas.width !== W * devicePixelRatio) resizeVelChart();
+
+  const vc = velCtx;
+  vc.save();
+  // Reset transform and clear
+  vc.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+
+  // Chart margins
+  const ml = 52, mr = 14, mt = 10, mb = 22;
+  const cw = W - ml - mr, ch = H - mt - mb;
+
+  // Background
+  vc.fillStyle = "#08080f";
+  vc.fillRect(0, 0, W, H);
+
+  const trail = result.trail;
+  if (trail.length < 2) { vc.restore(); return; }
+
+  const visCount = Math.floor(prog * trail.length);
+  if (visCount < 2) { vc.restore(); return; }
+
+  // Convert speeds to km/s and get time range
+  const totalDays = trail[trail.length - 1].t * 365.25;
+  const visDays = trail[visCount - 1].t * 365.25;
+
+  // Compute max speed across ALL trail points for stable Y axis
+  let maxSpd = 0;
+  for (let i = 0; i < trail.length; i++) {
+    const spd = (trail[i].speed / EARTH_V) * REAL_EARTH_V_KMS;
+    if (spd > maxSpd) maxSpd = spd;
+  }
+  maxSpd = Math.ceil(maxSpd / 5) * 5 + 5; // Round up nicely with padding
+
+  // Y axis gridlines and labels
+  vc.textAlign = "right";
+  vc.textBaseline = "middle";
+  vc.font = "8px 'IBM Plex Mono', monospace";
+  const ySteps = Math.min(5, Math.ceil(maxSpd / 10));
+  const yStep = maxSpd / ySteps;
+
+  for (let i = 0; i <= ySteps; i++) {
+    const v = yStep * i;
+    const y = mt + ch - (v / maxSpd) * ch;
+    vc.strokeStyle = "rgba(255,255,255,0.04)";
+    vc.lineWidth = 1;
+    vc.beginPath(); vc.moveTo(ml, y); vc.lineTo(ml + cw, y); vc.stroke();
+    vc.fillStyle = "rgba(255,255,255,0.3)";
+    vc.fillText(v.toFixed(0), ml - 6, y);
+  }
+
+  // Y axis label
+  vc.save();
+  vc.translate(10, mt + ch / 2);
+  vc.rotate(-Math.PI / 2);
+  vc.textAlign = "center";
+  vc.fillStyle = "rgba(255,255,255,0.2)";
+  vc.font = "bold 7px 'IBM Plex Mono', monospace";
+  vc.fillText("km/s", 0, 0);
+  vc.restore();
+
+  // X axis labels
+  vc.textAlign = "center";
+  vc.textBaseline = "top";
+  vc.font = "8px 'IBM Plex Mono', monospace";
+  vc.fillStyle = "rgba(255,255,255,0.25)";
+  const xLabelCount = Math.min(6, Math.floor(cw / 70));
+  for (let i = 0; i <= xLabelCount; i++) {
+    const d = (totalDays / xLabelCount) * i;
+    const x = ml + (d / totalDays) * cw;
+    vc.fillText("D" + Math.round(d), x, mt + ch + 6);
+  }
+
+  // Gravity assist vertical markers (behind the line)
+  if (result.assists) {
+    for (const a of result.assists) {
+      const ad = a.time * 365.25;
+      if (ad > visDays) continue;
+      const x = ml + (ad / totalDays) * cw;
+      vc.strokeStyle = "rgba(255,220,40,0.25)";
+      vc.lineWidth = 1;
+      vc.setLineDash([3, 3]);
+      vc.beginPath(); vc.moveTo(x, mt); vc.lineTo(x, mt + ch); vc.stroke();
+      vc.setLineDash([]);
+      // Label at top
+      vc.fillStyle = "rgba(255,220,40,0.7)";
+      vc.font = "bold 7px 'IBM Plex Mono', monospace";
+      vc.textAlign = "center"; vc.textBaseline = "bottom";
+      vc.fillText("⚡" + a.planet, x, mt - 1);
+    }
+  }
+
+  // Maneuver burn vertical markers
+  if (result.burns) {
+    for (const b of result.burns) {
+      const bd = b.time * 365.25;
+      if (bd > visDays) continue;
+      const x = ml + (bd / totalDays) * cw;
+      vc.strokeStyle = "rgba(187,136,255,0.3)";
+      vc.lineWidth = 1;
+      vc.setLineDash([3, 3]);
+      vc.beginPath(); vc.moveTo(x, mt); vc.lineTo(x, mt + ch); vc.stroke();
+      vc.setLineDash([]);
+      vc.fillStyle = "rgba(187,136,255,0.7)";
+      vc.font = "bold 7px 'IBM Plex Mono', monospace";
+      vc.textAlign = "center"; vc.textBaseline = "bottom";
+      vc.fillText("◆BURN", x, mt - 1);
+    }
+  }
+
+  // Velocity line — gradient from blue to orange
+  vc.lineWidth = 1.5;
+  vc.beginPath();
+  for (let i = 0; i < visCount; i++) {
+    const d = trail[i].t * 365.25;
+    const spd = (trail[i].speed / EARTH_V) * REAL_EARTH_V_KMS;
+    const x = ml + (d / totalDays) * cw;
+    const y = mt + ch - (spd / maxSpd) * ch;
+    if (i === 0) vc.moveTo(x, y); else vc.lineTo(x, y);
+  }
+  // Create gradient along x
+  const grad = vc.createLinearGradient(ml, 0, ml + cw * prog, 0);
+  grad.addColorStop(0, "rgba(90,170,255,0.85)");
+  grad.addColorStop(0.5, "rgba(255,170,70,0.85)");
+  grad.addColorStop(1, "rgba(255,100,50,0.9)");
+  vc.strokeStyle = grad;
+  vc.stroke();
+
+  // Fill under the curve (subtle)
+  vc.lineTo(ml + (trail[visCount - 1].t * 365.25 / totalDays) * cw, mt + ch);
+  vc.lineTo(ml, mt + ch);
+  vc.closePath();
+  const fillGrad = vc.createLinearGradient(0, mt, 0, mt + ch);
+  fillGrad.addColorStop(0, "rgba(255,140,60,0.08)");
+  fillGrad.addColorStop(1, "rgba(255,140,60,0)");
+  vc.fillStyle = fillGrad;
+  vc.fill();
+
+  // Playhead (vertical line at current position)
+  if (visCount > 0) {
+    const curD = trail[visCount - 1].t * 365.25;
+    const curSpd = (trail[visCount - 1].speed / EARTH_V) * REAL_EARTH_V_KMS;
+    const px = ml + (curD / totalDays) * cw;
+    const py = mt + ch - (curSpd / maxSpd) * ch;
+
+    vc.strokeStyle = "rgba(255,255,255,0.2)";
+    vc.lineWidth = 1;
+    vc.beginPath(); vc.moveTo(px, mt); vc.lineTo(px, mt + ch); vc.stroke();
+
+    // Dot on the line
+    vc.fillStyle = "#fff";
+    vc.beginPath(); vc.arc(px, py, 3, 0, PI2); vc.fill();
+    vc.fillStyle = "rgba(255,255,255,0.7)";
+    vc.font = "bold 8px 'IBM Plex Mono', monospace";
+    vc.textBaseline = "bottom";
+    // Flip label to left side if near right edge
+    if (px > ml + cw - 60) {
+      vc.textAlign = "right";
+      vc.fillText(curSpd.toFixed(1) + " km/s", px - 6, py - 4);
+    } else {
+      vc.textAlign = "left";
+      vc.fillText(curSpd.toFixed(1) + " km/s", px + 6, py - 4);
+    }
+  }
+
+  // Update info text
+  if (visCount > 0) {
+    const curSpd = (trail[visCount - 1].speed / EARTH_V) * REAL_EARTH_V_KMS;
+    const minSpd = Math.min(...trail.slice(0, visCount).map(t => (t.speed / EARTH_V) * REAL_EARTH_V_KMS));
+    const maxSpdVis = Math.max(...trail.slice(0, visCount).map(t => (t.speed / EARTH_V) * REAL_EARTH_V_KMS));
+    velInfo.textContent = `now: ${curSpd.toFixed(1)} · min: ${minSpd.toFixed(1)} · max: ${maxSpdVis.toFixed(1)} km/s`;
+  }
+
+  vc.restore();
+}
+
 function launch() {
   if (animId) cancelAnimationFrame(animId);
   const boost = +boostSlider.value;
@@ -1051,30 +1672,37 @@ function launch() {
   const launchDay = +dateSlider.value;
   const launchTimeYears = launchDay / 365.25;
 
-  result = simulate(boost, angle, dest, launchTimeYears);
-  progress = 0; running = true;
-  placeholder.style.display = "none";
+  result = simulate(boost, angle, dest, launchTimeYears, maneuverNodes);
+  progress = 0; running = true; paused = false;
+  collapseControls();
+  velWrap.classList.add("visible");
+  resizeVelChart();
   launchBtn.disabled = true;
   launchBtn.textContent = "⟳ RUNNING...";
+  pauseBtn.textContent = "⏸ STOP";
+  pauseBtn.classList.remove("paused");
   statusEl.textContent = ""; statusEl.className = "";
   tipEl.style.display = "none";
 
-  const baseFrames = Math.max(300, Math.min(result.trail.length * 0.8, 800));
+  storedBaseFrames = Math.max(300, Math.min(result.trail.length * 0.8, 800));
   let lastTime = performance.now();
 
   function tick(now) {
+    if (paused) return;
     const animSpeed = +speedSlider.value;
     const elapsed = (now - lastTime) / 1000;
     lastTime = now;
-    const increment = (animSpeed * elapsed * 60) / baseFrames;
+    const increment = (animSpeed * elapsed * 60) / storedBaseFrames;
     progress = Math.min(progress + increment, 1);
     draw(progress);
     if (progress < 1) {
       animId = requestAnimationFrame(tick);
     } else {
-      running = false;
+      running = false; paused = false;
       launchBtn.disabled = false;
       launchBtn.textContent = "▶ LAUNCH";
+      pauseBtn.textContent = "⏸ STOP";
+      pauseBtn.classList.remove("paused");
       showStatus();
     }
   }
@@ -1087,6 +1715,8 @@ function showStatus() {
   const a = result.assists;
   const aStr = a.length > 0
     ? ` · ${a.length} assist${a.length !== 1 ? "s" : ""}: ${a.map(x => x.planet).join(", ")}` : "";
+  const bStr = result.burns && result.burns.length > 0
+    ? ` · ${result.burns.length} burn${result.burns.length !== 1 ? "s" : ""} (${result.burns.reduce((s, b) => s + b.dvKms, 0).toFixed(1)} km/s)` : "";
 
   // Determine the effective stop reason (split ARRIVED into CAPTURED vs FLYBY)
   let effectiveReason = result.stopReason;
@@ -1103,14 +1733,17 @@ function showStatus() {
     captureDetail = ` · approach: ${ci.relVelKms.toFixed(1)} km/s vs escape: ${ci.escVelKms.toFixed(1)} km/s`;
   }
 
-  statusEl.innerHTML = `${label.text} <span class="detail">${days} days${aStr}${captureDetail}</span>`;
+  statusEl.innerHTML = `${label.text} <span class="detail">${days} days${aStr}${bStr}${captureDetail}</span>`;
 
   if (effectiveReason === "FLYBY") {
     const ci = result.captureInfo;
     const excess = (ci.relVelKms - ci.escVelKms).toFixed(1);
+    const burnHint = result.burns.length === 0
+      ? ` Or add a maneuver burn near ${destSel.value} to brake — like pressing the brakes before a turn.`
+      : ` Your maneuver burns fired but you're still ${excess} km/s too fast. Try adding a retrograde burn (angle 180°) closer to arrival.`;
     tipEl.innerHTML = `↗ You reached ${destSel.value} but were going ${excess} km/s too fast to be captured. ` +
       `Try reducing your boost — you need your approach speed under ${ci.escVelKms} km/s. ` +
-      `Think of it like rolling a marble into a bowl: too fast and it rolls right over.`;
+      `Think of it like rolling a marble into a bowl: too fast and it rolls right over.${burnHint}`;
     tipEl.style.display = "block";
   } else if (effectiveReason === "CAPTURED") {
     const ci = result.captureInfo;
